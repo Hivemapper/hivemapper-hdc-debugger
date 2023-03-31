@@ -193,25 +193,33 @@ func (a *Api) ApplyCameraConfig(w http.ResponseWriter, r *http.Request) {
 	// todo: take the commands and rerun the camera bridge with the new commands
 }
 
-// ./libcamera-bridge
-// --config camera_config.json
-// --segment 0
-// --timeout 0
-// --tuning-file imx477.json
-// --brightness 0.2
-// --sharpness 3
-// --saturation 1.5
-// --shutter 1500
-// --gain 1
-// --awb cloudy
-
 type CameraConfig struct {
-	Fps               int    `json:"fps"`
-	Width             int    `json:"width"`
-	Height            int    `json:"height"`
-	Codec             string `json:"codec"`
-	Quality           int    `json:"quality"`
-	CropWidth         int    `json:"crop_width"`
-	CropHeight        int    `json:"crop_height"`
-	CropOffsetFromTop int    `json:"crop_offset_from_top"`
+	Fps               int     `json:"fps,omitempty"`
+	Width             int     `json:"width,omitempty"`
+	Height            int     `json:"height,omitempty"`
+	Codec             string  `json:"codec,omitempty"`
+	Quality           int     `json:"quality,omitempty"`
+	CropWidth         int     `json:"crop_width,omitempty"`
+	CropHeight        int     `json:"crop_height,omitempty"`
+	CropOffsetFromTop int     `json:"crop_offset_from_top,omitempty"`
+	Segment           int     `json:"segment,omitempty"`
+	Timeout           int     `json:"timeout,omitempty"`
+	Brightness        float64 `json:"brightness,omitempty"`
+	Sharpness         float64 `json:"sharpness,omitempty"`
+	Saturation        float64 `json:"saturation,omitempty"`
+	Shutter           int     `json:"shutter,omitempty"`
+	Gain              int     `json:"gain,omitempty"`
+	Awb               string  `json:"awb,omitempty"`
 }
+
+// types of awb
+const (
+	Auto         string = "auto"
+	Incandescent        = "incandescent"
+	Tungsten            = "tungsten"
+	Fluorescent         = "fluorescent"
+	Indoor              = "indoor"
+	Daylight            = "daylight"
+	Cloudy              = "cloudy"
+	Custom              = "custom"
+)
