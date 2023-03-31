@@ -2,16 +2,13 @@ package main
 
 import (
 	_ "embed"
-	"encoding/json"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/spf13/cobra"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 )
 
 //go:embed index.html
@@ -25,14 +22,12 @@ var fileWatcherCmd = &cobra.Command{
 }
 
 func init() {
+	fileWatcherCmd.Flags().String("listen-addr", ":3333", "start http server on port 3333 by defult")
 	RootCmd.AddCommand(fileWatcherCmd)
 }
 
 func watchRunE(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		log.Fatal("missing folder argument")
-	}
-	folder := os.Args[1]
+	folder := args[0]
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -41,7 +36,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	defer watcher.Close()
 
 	done := make(chan bool)
-	newFiles := make(chan string)
+	newFilepaths := make(chan string)
 	go func() {
 		defer close(done)
 
@@ -53,7 +48,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 				}
 				if event.Op == fsnotify.Create {
 					if strings.HasSuffix(event.Name, "jpg") {
-						newFiles <- event.Name
+						newFilepaths <- event.Name
 					}
 				}
 			case err, ok := <-watcher.Errors:
@@ -66,98 +61,26 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 
 	}()
 
-	println("About to watch folder:", folder)
+	fmt.Printf("About to watch folder: %s\n", folder)
 	err = watcher.Add(folder)
 	if err != nil {
-		log.Fatal("Add failed:", err)
+		return fmt.Errorf("adding folder %s: %w", folder, err)
 	}
+
+	api := NewApi(newFilepaths, folder)
 
 	listenAddr := mustGetString(cmd, "listen-addr")
 
-	//todo: setup handler and route
+	http.HandleFunc("/lastframe", api.GetLastFrame)
+	http.HandleFunc("/framjpg/{filename}", api.GetJPG)
 
-	log.Println("Starting jpeg preview on", listenAddr)
+	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
+		return fmt.Errorf("ListenAndServe: %w\n", err)
 	}
 
 	return nil
 
-}
-
-type Frame struct {
-	Filename string
-	Size     int64
-	Ts       time.Time
-}
-
-type FrameInfo struct {
-	Frame *Frame
-}
-
-type Api struct {
-	newFiles  chan string
-	lastFrame *Frame
-}
-
-func NewApi(newFilenames chan string) *Api {
-	api := &Api{
-		newFiles: newFilenames,
-	}
-
-	go func() {
-		for {
-			select {
-			case filename := <-newFilenames:
-				if stat, err := os.Stat(filename); err == nil {
-					if api.lastFrame == nil || time.Since(api.lastFrame.Ts) > 1*time.Second {
-						api.lastFrame = &Frame{
-							Filename: filename,
-							Size:     stat.Size(),
-							Ts:       time.Now(),
-						}
-					}
-				} else {
-					log.Fatal("File does not exist")
-				}
-			}
-		}
-	}()
-
-	return api
-}
-
-func (a *Api) GetLastFrameInfo(w http.ResponseWriter, r *http.Request) {
-	//todo: extract filename from url
-	f, err := os.Open("filename")
-	if err != nil {
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(500)
-		return
-	}
-	data, err := io.ReadAll(f)
-	if err != nil {
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(500)
-		return
-	}
-
-	w.Header().Add("content-type", "image/jpeg")
-	w.Write(data)
-}
-
-func (a *Api) GetLastFrameJpg(w http.ResponseWriter, r *http.Request) {
-
-	if a.lastFrame != nil {
-		data, err := json.Marshal(a.lastFrame)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-			w.WriteHeader(500)
-			return
-		}
-		w.Header().Add("content-type", "application/json")
-		w.Write(data)
-	}
 }
 
 //func extractJpegFileInfo(file *os.File) (*JPEGFileInfo, error) {
