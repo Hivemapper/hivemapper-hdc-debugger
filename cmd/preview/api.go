@@ -101,29 +101,16 @@ func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
 	filename := pathElems[len(pathElems)-1]
 	fullFilename := filepath.Join(a.path, pathElems[len(pathElems)-1])
 
-	sourceFileStat, err := os.Stat(fullFilename)
-	if err != nil {
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(500)
-		return
-	}
-
-	if !sourceFileStat.Mode().IsRegular() {
-		w.Write([]byte(fmt.Sprintf("%s is not a regular file", fullFilename)))
-		w.WriteHeader(500)
-		return
-	}
-
 	source, err := os.Open(fullFilename)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
 	defer source.Close()
 
-	copyFolderPath := filepath.Join(a.path, "/copy/")
+	copyFolderPath := filepath.Join("/mnt/data", "/copy")
 	err = os.MkdirAll(copyFolderPath, os.ModePerm)
 	if err != nil {
 		w.Write([]byte(err.Error()))
@@ -131,7 +118,10 @@ func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destination, err := os.Create(filepath.Join(copyFolderPath, filename))
+	destinationPath := filepath.Join(copyFolderPath, filename)
+	fmt.Println("destinationPath:", destinationPath)
+
+	destination, err := os.Create(destinationPath)
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)

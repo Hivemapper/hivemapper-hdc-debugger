@@ -5,37 +5,38 @@
     <title>Title</title>
 </head>
 <script>
+    currentImage = "";
     function myFunction() {
 
-        fetch("http://localhost:3333/lastframe")
+        fetch("http://192.168.0.10:3333/lastframe")
             .then((response) => response.json())
             .then(function (data) {
                 console.log("data len", data.length)
-                let filename = data.Filename;
-                document.getElementById("image-path").innerHTML = filename;
+                currentImage = data.Filename;
+                document.getElementById("image-path").innerHTML = currentImage;
                 document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
-                document.getElementById("my-image").src = "http:/localhost:3333/framejpg/"+ filename;
+                document.getElementById("my-image").src = "./framejpg/"+ currentImage;
             });
     }
 
     function copyImage() {
-        var imageName = document.getElementById("image-path");
-        fetch("http://localhost:3333/copy/", imageName);
+        fetch("http://192.168.0.10:3333/copy/" + currentImage);
     }
 </script>
 <body onload="myFunction()">
-<button onclick="myFunction()">Refresh</button>
 <script>
     var intervalId = window.setInterval(function(){
         myFunction()
     }, 1000);
 </script>
 
+<button onclick="myFunction()">Refresh</button>
+<button onclick="copyImage()">Copy image</button>
+
 <span style="display: inline-block;">
         <h1 id="image-path"></h1>
         <h2 id="image-size"></h2>
         <img id="my-image" width="75%" height="75%" src="" alt="image">
-        <button onclick="copyImage()">Copy image</button>
     </span>
 </body>
 </html>
