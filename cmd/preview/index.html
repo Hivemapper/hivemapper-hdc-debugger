@@ -13,7 +13,7 @@
                 console.log("data len", data.length)
                 let filename = data.Filename;
                 document.getElementById("image-path").innerHTML = filename;
-                document.getElementById("image-size").innerHTML = data.Size;
+                document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
                 document.getElementById("my-image").src = "http://192.168.0.10:3333/framejpg/"+ filename;
             });
     }
@@ -23,7 +23,7 @@
 <script>
     var intervalId = window.setInterval(function(){
         myFunction()
-    }, 5000);
+    }, 1000);
 </script>
 
 <span style="display: inline-block;">
