@@ -48,7 +48,6 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 				}
 				if event.Op == fsnotify.Create {
 					if strings.HasSuffix(event.Name, "jpg") {
-						fmt.Println("adding new event", event.Name)
 						newFilepaths <- event.Name
 					}
 				}

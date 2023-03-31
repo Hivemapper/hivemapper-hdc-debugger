@@ -7,14 +7,14 @@
 <script>
     function myFunction() {
 
-        fetch("http://localhost:3333/lastframe")
+        fetch("http://192.168.0.10:3333/lastframe")
             .then((response) => response.json())
             .then(function (data) {
                 console.log("data len", data.length)
                 let filename = data.Filename;
                 document.getElementById("image-path").innerHTML = filename;
                 document.getElementById("image-size").innerHTML = data.Size;
-                document.getElementById("my-image").src = "http://localhost:3333/framejpg/"+ filename;
+                document.getElementById("my-image").src = "http://192.168.0.10:3333/framejpg/"+ filename;
             });
     }
 </script>
@@ -29,7 +29,7 @@
 <span style="display: inline-block;">
         <h1 id="image-path"></h1>
         <h2 id="image-size"></h2>
-        <img id="my-image" width="500" height="500" src="" alt="image">
+        <img id="my-image" width="75%" height="75%" src="" alt="image">
     </span>
 </body>
 </html>
