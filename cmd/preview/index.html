@@ -1,43 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<script>
-    currentImage = "";
-    function myFunction() {
+    <head>
+        <meta charset="UTF-8">
+        <title>Preview</title>
+    </head>
+    <script>
+        let currentImage = "";
+        dashcameServer = "http://192.168.0.10:3333"
+        function myFunction() {
+            fetch(`${dashcameServer}/lastframe`)
+                .then((response) => response.json())
+                .then(function (data) {
+                    console.log("data len", data.length)
+                    currentImage = data.Filename;
+                    document.getElementById("image-path").innerHTML = currentImage;
+                    document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
+                    document.getElementById("my-image").src = "./framejpg/"+ currentImage;
+                });
+        }
 
-        fetch("http://192.168.0.10:3333/lastframe")
-            .then((response) => response.json())
-            .then(function (data) {
-                console.log("data len", data.length)
-                currentImage = data.Filename;
-                document.getElementById("image-path").innerHTML = currentImage;
-                document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
-                document.getElementById("my-image").src = "./framejpg/"+ currentImage;
-            });
-    }
+        function copyImage() {
+            fetch(`${dashcameServer}/copy/${currentImage}`);
+        }
 
-    function copyImage() {
-        fetch("http://192.168.0.10:3333/copy/" + currentImage);
-    }
-</script>
-<body onload="myFunction()">
-<script>
-    var intervalId = window.setInterval(function(){
-        myFunction()
-    }, 1000);
-</script>
+        function getCameraConfig() {
+            fetch(`${dashcameServer}/camera/config`)
+        }
 
-<button onclick="myFunction()">Refresh</button>
-<button onclick="copyImage()">Copy image</button>
+        function applyCameraConfig() {
+            let opts = {
+                method: 'POST',
+                body: '',
+            }
+            fetch(`${dashcameServer}/camera/config/apply`, opts)
+        }
+    </script>
+    <body onload="myFunction()">
+        <script>
+            const intervalId = window.setInterval(function () {
+                myFunction()
+            }, 1000);
+        </script>
 
-<span style="display: inline-block;">
-        <h1 id="image-path"></h1>
-        <h2 id="image-size"></h2>
-        <img id="my-image" width="75%" height="75%" src="" alt="image">
-    </span>
-</body>
+        <button onclick="myFunction()">Refresh</button>
+        <button onclick="copyImage()">Copy image</button>
+        <button onclick="copyImage()">Apply</button>
+        <span style="display: inline-block;">
+            <h1 id="image-path"></h1>
+            <h2 id="image-size"></h2>
+            <img id="my-image" width="75%" height="75%" src="" alt="image">
+        </span>
+    </body>
 </html>
 

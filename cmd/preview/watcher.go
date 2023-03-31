@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/rwcarlsen/goexif/exif"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -75,6 +74,8 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/framejpg/", api.GetJPG)
 	http.HandleFunc("/preview", api.FrameHTML)
 	http.HandleFunc("/copy/", api.CopyJPG)
+	http.HandleFunc("/camera/config", api.GetCameraConfig)
+	http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
 
 	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {
@@ -83,31 +84,4 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 
 	return nil
 
-}
-
-//func extractJpegFileInfo(file *os.File) (*JPEGFileInfo, error) {
-//	x, err := exif.Decode(file)
-//	if err != nil {
-//		return nil, fmt.Errorf("decoding exif data for %s: %w", file.Name(), err)
-//	}
-//
-//	return &JPEGFileInfo{
-//		xResolution: extractExifDataPoint(x, exif.XResolution),
-//		yResolution: extractExifDataPoint(x, exif.YResolution),
-//		imageWidth:  extractExifDataPoint(x, exif.ImageWidth),
-//		imageHeight: extractExifDataPoint(x, exif.ImageLength),
-//	}, nil
-//}
-
-func extractExifDataPoint(x *exif.Exif, fieldName exif.FieldName) string {
-	exifInfo, _ := x.Get(fieldName)
-	return exifInfo.String()
-}
-
-type JPEGFileInfo struct {
-	xResolution string
-	yResolution string
-	imageWidth  string
-	imageHeight string
-	fileSize    int64
 }
