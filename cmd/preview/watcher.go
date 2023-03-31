@@ -48,6 +48,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 				}
 				if event.Op == fsnotify.Create {
 					if strings.HasSuffix(event.Name, "jpg") {
+						fmt.Println("adding new event", event.Name)
 						newFilepaths <- event.Name
 					}
 				}
@@ -72,7 +73,8 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	listenAddr := mustGetString(cmd, "listen-addr")
 
 	http.HandleFunc("/lastframe", api.GetLastFrame)
-	http.HandleFunc("/framjpg/{filename}", api.GetJPG)
+	http.HandleFunc("/framejpg/", api.GetJPG)
+	http.HandleFunc("/preview", api.FrameHTML)
 
 	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {

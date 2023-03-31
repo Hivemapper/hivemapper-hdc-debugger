@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -56,6 +57,7 @@ func NewApi(newFilenames chan string, path string) *Api {
 }
 
 func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("path", r.URL.Path)
 	path := r.URL.Path
 	pathElems := strings.Split(path, "/")
 	filename := pathElems[len(pathElems)-1]
