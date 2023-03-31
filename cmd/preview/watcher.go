@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rwcarlsen/goexif/exif"
@@ -13,18 +14,8 @@ import (
 	"time"
 )
 
-/*
-1. create a jpeg-file-watcher which listens on /mnt/data/...
-	- this file watcher will aggregate states and send them out every second
-	- we want the number of file per seconds that are saved
-	- we want the stats of an image every second
-		-> exif information
-		-> resolution of the image
-		-> and whatever else which would be interesting to have
-
-	- file per seconds that are saved
-	- stats of an image every second
-*/
+//go:embed index.html
+var index string
 
 var fileWatcherCmd = &cobra.Command{
 	Use:   "watch {path}",
