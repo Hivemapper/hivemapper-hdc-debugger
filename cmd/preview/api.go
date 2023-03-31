@@ -39,7 +39,7 @@ func NewApi(newFilenames chan string, path string) *Api {
 			select {
 			case filename := <-newFilenames:
 				if stat, err := os.Stat(filename); err == nil {
-					if api.lastFrame == nil || time.Since(api.lastFrame.Ts) > 1*time.Second {
+					if api.lastFrame == nil || time.Since(api.lastFrame.Ts) > 500*time.Millisecond {
 						api.lastFrame = &Frame{
 							Filename: stat.Name(),
 							Size:     stat.Size(),
@@ -57,7 +57,6 @@ func NewApi(newFilenames chan string, path string) *Api {
 }
 
 func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("path", r.URL.Path)
 	path := r.URL.Path
 	pathElems := strings.Split(path, "/")
 	filename := pathElems[len(pathElems)-1]
@@ -94,4 +93,69 @@ func (a *Api) GetLastFrame(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) FrameHTML(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(index))
+}
+
+func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	pathElems := strings.Split(path, "/")
+	filename := pathElems[len(pathElems)-1]
+	fullFilename := filepath.Join(a.path, pathElems[len(pathElems)-1])
+
+	sourceFileStat, err := os.Stat(fullFilename)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		w.Write([]byte(fmt.Sprintf("%s is not a regular file", fullFilename)))
+		w.WriteHeader(500)
+		return
+	}
+
+	source, err := os.Open(fullFilename)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	defer source.Close()
+
+	copyFolderPath := filepath.Join(a.path, "/copy/")
+	err = os.MkdirAll(copyFolderPath, os.ModePerm)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	destination, err := os.Create(filepath.Join(copyFolderPath, filename))
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	fmt.Printf("destination %s\n", destination.Name())
+	fmt.Printf("source %s\n", source.Name())
+
+	defer destination.Close()
+	data, err := io.ReadAll(source)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	err = os.WriteFile(destination.Name(), data, 0644)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+
+	w.Write([]byte("Copied!"))
+	w.WriteHeader(200)
 }

@@ -7,15 +7,20 @@
 <script>
     function myFunction() {
 
-        fetch("http://192.168.0.10:3333/lastframe")
+        fetch("http://localhost:3333/lastframe")
             .then((response) => response.json())
             .then(function (data) {
                 console.log("data len", data.length)
                 let filename = data.Filename;
                 document.getElementById("image-path").innerHTML = filename;
                 document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
-                document.getElementById("my-image").src = "http://192.168.0.10:3333/framejpg/"+ filename;
+                document.getElementById("my-image").src = "http:/localhost:3333/framejpg/"+ filename;
             });
+    }
+
+    function copyImage() {
+        var imageName = document.getElementById("image-path");
+        fetch("http://localhost:3333/copy/", imageName);
     }
 </script>
 <body onload="myFunction()">
@@ -30,6 +35,7 @@
         <h1 id="image-path"></h1>
         <h2 id="image-size"></h2>
         <img id="my-image" width="75%" height="75%" src="" alt="image">
+        <button onclick="copyImage()">Copy image</button>
     </span>
 </body>
 </html>

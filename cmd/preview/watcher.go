@@ -74,6 +74,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/lastframe", api.GetLastFrame)
 	http.HandleFunc("/framejpg/", api.GetJPG)
 	http.HandleFunc("/preview", api.FrameHTML)
+	http.HandleFunc("/copy/", api.CopyJPG)
 
 	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {
