@@ -1,88 +1,309 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Preview</title>
-        <style>
-            .grid-container {
-                display: grid;
-                grid-template-columns: auto auto;
-            }
-            .grid-item {
-                background-color: rgba(255, 255, 255, 1);
-                border: 1px solid rgba(0, 0, 0, 0.8);
-                padding: 20px;
-                font-size: 30px;
-                text-align: center;
-            }
-        </style>
-    </head>
-    <script>
-        let currentImage = "";
-        dashcameServer = "http://192.168.0.10:3333"
-        function myFunction() {
-            fetch(`${dashcameServer}/lastframe`)
-                .then((response) => response.json())
-                .then(function (data) {
-                    console.log("data len", data.length)
-                    currentImage = data.Filename;
-                    document.getElementById("image-path").innerHTML = currentImage;
-                    document.getElementById("image-size").innerHTML = Math.trunc(data.Size/1024) + "K";
-                    document.getElementById("my-image").src = "./framejpg/"+ currentImage;
-                });
+<head>
+    <meta charset="UTF-8">
+    <title>Preview</title>
+    <style>
+        .value {
+            text-align: right;
         }
+    </style>
+</head>
+<script>
+    //https://coolors.co/palette/ccd5ae-e9edc9-fefae0-faedcd-d4a373
+    let currentImage = "";
+    // dashcameServer = "http://192.168.0.10:3333"
+    dashcameServer = ""
 
-        function copyImage() {
-            fetch(`${dashcameServer}/copy/${currentImage}`);
+    function myFunction() {
+        fetch(`${dashcameServer}/lastframe`)
+            .then((response) => response.json())
+            .then(function (data) {
+                currentImage = data.Filename;
+                document.getElementById("image-path").innerHTML = currentImage;
+                document.getElementById("image-size").innerHTML = Math.trunc(data.Size / 1024) + "KB";
+                document.getElementById("my-image").src = "./framejpg/" + currentImage;
+            }).catch(function (e){
+                // console.log(e)
+        });
+        fetch(`${dashcameServer}/top`)
+            .then((response) => response.json())
+            .then(function (data) {
+                const mem = data.Memory
+                const cpu = data.CPU
+                const frame = data.FrameStats
+                document.getElementById("memory_total").innerHTML = mem.Total;
+                document.getElementById("memory_used").innerHTML = mem.Used;
+                document.getElementById("memory_free").innerHTML = mem.Free;
+                document.getElementById("memory_active").innerHTML = mem.Active;
+                document.getElementById("memory_cache").innerHTML = mem.Cached;
+                document.getElementById("memory_swap").innerHTML = mem.SwapTotal;
+
+                document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
+                document.getElementById("cpu_used").innerHTML = (cpu.Total - cpu.Idle).toFixed(0)+ " %";
+                document.getElementById("cpu_user").innerHTML = cpu.User.toFixed(0)+ " %";
+                document.getElementById("cpu_system").innerHTML = cpu.System.toFixed(0)+ " %";
+                document.getElementById("cpu_idle").innerHTML = cpu.Idle.toFixed(0)+ " %";
+
+                document.getElementById("frame_rate").innerHTML = frame.Framerate;
+                document.getElementById("frame_average_size").innerHTML =  Math.trunc(frame.FrameAverageSize / 1024) + "KB";
+                document.getElementById("frame_total").innerHTML = frame.FrameTotalCount;
+
+            }).catch(function (e){
+            console.log(e)
+        });
+    }
+
+    function copyImage() {
+        fetch(`${dashcameServer}/copy/${currentImage}`);
+    }
+
+    function getCameraConfig() {
+        fetch(`${dashcameServer}/camera/config`)
+    }
+
+    function applyCameraConfig() {
+        let opts = {
+            method: 'POST',
+            body: '',
         }
+        fetch(`${dashcameServer}/camera/config/apply`, opts)
+    }
+</script>
+<body onload="myFunction()">
+<script>
+    const intervalId = window.setInterval(function () {
+        myFunction()
+    }, 1000);
+</script>
 
-        function getCameraConfig() {
-            fetch(`${dashcameServer}/camera/config`)
-        }
 
-        function applyCameraConfig() {
-            let opts = {
-                method: 'POST',
-                body: '',
-            }
-            fetch(`${dashcameServer}/camera/config/apply`, opts)
-        }
-    </script>
-    <body onload="myFunction()">
-        <script>
-            const intervalId = window.setInterval(function () {
-                myFunction()
-            }, 1000);
-        </script>
+<table style="width: 100%; background-color: #D4A373">
+    <tr style="width: 100%; ">
 
-        <button onclick="myFunction()">Refresh</button>
-        <button onclick="copyImage()">Copy image</button>
-        <button onclick="copyImage()">Apply</button>
+        <td style="width: 25%; vertical-align:top; border-style: none;">
+            <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                <tr>
+                    <td id="image-path">Image name here</td>
+                    <td id="image-size">Size here</td>
+                </tr>
+            </table>
+            <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black; border-style: none; border-color: blue">
+                <tr>
+                    <td>Framerate:</td>
+                    <td class="value" id="frame_rate">--</td>
+                </tr>
+                <tr>
+                    <td>Frame average size:</td>
+                    <td class="value" id="frame_average_size">--</td>
+                </tr>
+                <tr>
+                    <td>Frame Skip:</td>
+                    <td class="value">--</td>
+                </tr>
+                <tr>
+                    <td>Total:</td>
+                    <td class="value" id="frame_total"></td>
+                </tr>
+            </table>
+            <table style="width: 100%; margin-bottom: 10px">
+                <tr>
+                    <th style="background-color: #FEFAE0">CPU</th>
+                    <th style="background-color: #FEFAE0">Memory</th>
+                </tr>
+                <tr>
+                    <td style="width: 50%; height: 100%; vertical-align: top; background-color: #FEFAE0;">
+                            <table style="width: 100%; height: 100%">
+                                <tr>
+                                    <td>Total:</td>
+                                    <td class="value" id="cpu_total"></td>
+                                </tr>
+                                <tr>
+                                    <td>Used:</td>
+                                    <td class="value" id="cpu_used"></td>
+                                </tr>
+                                <tr>
+                                    <td>User:</td>
+                                    <td class="value" id="cpu_user"></td>
+                                </tr>
+                                <tr>
+                                    <td>System:</td>
+                                    <td class="value" id="cpu_system"></td>
+                                </tr>
+                                <tr>
+                                    <td>Idle:</td>
+                                    <td class="value" id="cpu_idle"></td>
+                                </tr>
+                            </table>
+                    </td>
+                    <td style="width: 50%; height: 100%; vertical-align: top;background-color: #FEFAE0">
+                        <table style="width: 100%;" >
+                            <tr>
+                                <td>Total:</td>
+                                <td class="value" id="memory_total"></td>
+                            </tr>
+                            <tr>
+                                <td>Used:</td>
+                                <td class="value" id="memory_used"></td>
+                            </tr>
+                            <tr>
+                                <td>Free:</td>
+                                <td class="value" id="memory_free"></td>
+                            </tr>
+                            <tr>
+                                <td>Active:</td>
+                                <td class="value" id="memory_active"></td>
+                            </tr>
+                            <tr>
+                                <td>Cached:</td>
+                                <td class="value" id="memory_cache"></td>
+                            </tr>
+                            <tr>
+                                <td>swap:</td>
+                                <td class="value" id="memory_swap"></td>
+                            </tr>
+                        </table>
 
-        <!-- insert grid layout here -->
-        <div class="grid-container">
-            <div class="grid-item">Width</div>
-            <div class="grid-item">Height</div>
-            <div class="grid-item">Quality</div>
-            <div class="grid-item">CropWidth</div>
-            <div class="grid-item">CropHeight</div>
-            <div class="grid-item">CropOffsetFromTop</div>
-            <div class="grid-item">Segment</div>
-            <div class="grid-item">Timeout</div>
-            <div class="grid-item">Brightness</div>
-            <div class="grid-item">Sharpness</div>
-            <div class="grid-item">Saturation</div>
-            <div class="grid-item">Shutter</div>
-            <div class="grid-item">Gain</div>
-            <div class="grid-item">Awb</div>
-        </div>
+                    </td>
+                </tr>
+            </table>
 
-        <br />
-        <span style="display: inline-block;">
-            <h1 id="image-path"></h1>
-            <h2 id="image-size"></h2>
-            <img id="my-image" width="75%" height="75%" src="" alt="image">
-        </span>
-    </body>
+            <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                <!--                        <div>Set a fixed shutter speed</div>-->
+                <tr style="width: 100%;">
+                    <td>
+                        <span>Shutter:</span>
+                    </td>
+                    <td>
+                        <input id="shutter" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>Analog Gain:</span>
+                    </td>
+                    <td>
+                        <input id="analoggain" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>metering:</span>
+                    </td>
+                    <td>
+                        <select id="metering">
+                            <option value="centre">centre</option>
+                            <option value="spot">spot</option>
+                            <option value="average">average</option>
+                            <option value="custom">custom</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>exposure:</span>
+                    </td>
+                    <td>
+                        <select id="exposure">
+                            <option value="normal">normal</option>
+                            <option value="sport">sport</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>ev (exposure compensation):</span>
+                    </td>
+                    <td>
+                        <input id="ev" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>awb:</span>
+                    </td>
+                    <td>
+                        <select id="awb">
+                            <option value="auto">auto</option>
+                            <option value="incandescent">incandescent</option>
+                            <option value="tungsten">tungsten</option>
+                            <option value="fluorescent">fluorescent</option>
+                            <option value="indoor">indoor</option>
+                            <option value="daylight">daylight</option>
+                            <option value="cloudy">custom</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>awbgains:</span>
+                    </td>
+                    <td>
+                        <input id="awbgains" value="0.0,0.0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>brightness (-1.0 to 1.0):</span>
+                    </td>
+                    <td>
+                        <input id="brightness" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>contrast:<br/>where 1.0 = normal contrast</span>
+                    </td>
+                    <td>
+                        <input id="contrast" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>saturation:<br/>where 1.0 = normal and 0.0 = greyscale</span>
+                    </td>
+                    <td>
+                        <input id="saturation" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>sharpness:<br/>where 1.0 = normal sharpening"</span>
+                    </td>
+                    <td>
+                        <input id="sharpness" value="0">
+                    </td>
+                </tr>
+                <tr style="width: 100%;">
+                    <td>
+                        <span>denoise:</span>
+                    </td>
+                    <td>
+                        <select id="denoise">
+                            <option value="auto">auto</option>
+                            <option value="off">off</option>
+                            <option value="cdn_off">cdn_off</option>
+                            <option value="cdn_fast">cdn_fast</option>
+                            <option value="cdn_hq">cdn_hq</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="margin-top: 20px">
+                            <button onclick="myFunction()">Refresh</button>
+                            <button onclick="copyImage()">Copy image</button>
+                            <button onclick="copyImage()">Apply</button>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td style="width: 75%;">
+            <img id="my-image" width="100%" src="file:///Users/cbillett/Downloads/scale_first.jpg" alt="image">
+        </td>
+    </tr>
+</table>
+</body>
 </html>
 

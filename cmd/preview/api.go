@@ -11,7 +11,75 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/dustin/go-humanize"
+	"github.com/mackerelio/go-osstat/cpu"
+	"github.com/mackerelio/go-osstat/memory"
 )
+
+var top *Top
+var frameStats *FrameStats
+
+func init() {
+	go func() {
+		for {
+			memStats, err := memory.Get()
+			if err != nil {
+				println(err)
+				return
+			}
+
+			before, err := cpu.Get()
+			if err != nil {
+				println(err)
+				return
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+			after, err := cpu.Get()
+			if err != nil {
+				println(err)
+				return
+			}
+			total := float64(after.Total - before.Total)
+
+			top = &Top{
+				FrameStats: frameStats,
+				Memory: &Memory{
+					Total:     humanize.IBytes(memStats.Total),
+					Used:      humanize.IBytes(memStats.Used),
+					Cached:    humanize.IBytes(memStats.Cached),
+					Free:      humanize.IBytes(memStats.Free),
+					Active:    humanize.IBytes(memStats.Active),
+					Inactive:  humanize.IBytes(memStats.Inactive),
+					SwapTotal: humanize.IBytes(memStats.SwapTotal),
+					SwapUsed:  humanize.IBytes(memStats.SwapUsed),
+					SwapFree:  humanize.IBytes(memStats.SwapFree),
+				},
+				CPU: &CPU{
+					User:   float64(after.User-before.User) / total * 100,
+					System: float64(after.System-before.System) / total * 100,
+					Idle:   float64(after.Idle-before.Idle) / total * 100,
+					Nice:   float64(after.Nice-before.Nice) / total * 100,
+					Total:  float64(after.Total-before.Total) / total * 100,
+				},
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			frameStats.Framerate = frameStats.frameCount / 5
+
+			if frameStats.frameCount > 0 {
+				frameStats.FrameAverageSize = frameStats.frameSizeSum / frameStats.frameCount
+			}
+			frameStats.frameCount = 0
+			frameStats.frameSizeSum = 0
+		}
+	}()
+}
 
 type Frame struct {
 	Filename string
@@ -35,11 +103,19 @@ func NewApi(newFilenames chan string, path string) *Api {
 		path:     path,
 	}
 
+	frameStats = &FrameStats{}
+
 	go func() {
 		for {
 			select {
 			case filename := <-newFilenames:
 				if stat, err := os.Stat(filename); err == nil {
+
+					fmt.Println("filename:", filename, frameStats.frameCount)
+					frameStats.frameCount++
+					frameStats.FrameTotalCount++
+					frameStats.frameSizeSum += stat.Size()
+
 					if api.lastFrame == nil || time.Since(api.lastFrame.Ts) > 500*time.Millisecond {
 						api.lastFrame = &Frame{
 							Filename: stat.Name(),
@@ -55,6 +131,41 @@ func NewApi(newFilenames chan string, path string) *Api {
 	}()
 
 	return api
+}
+
+type Top struct {
+	FrameStats *FrameStats
+	Memory     *Memory
+	CPU        *CPU
+}
+
+type FrameStats struct {
+	Framerate        int64
+	FrameAverageSize int64
+	FrameTotalCount  int64
+
+	frameCount   int64
+	frameSizeSum int64
+}
+type Memory struct {
+	Total, Used, Cached, Free, Active, Inactive, SwapTotal, SwapUsed, SwapFree string
+}
+type CPU struct {
+	User, System, Idle, Nice, Total float64
+}
+
+func (a *Api) Top(w http.ResponseWriter, r *http.Request) {
+	if top == nil {
+		return
+	}
+	data, err := json.Marshal(top)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	w.Header().Add("content-type", "application/json")
+	w.Write(data)
 }
 
 func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {

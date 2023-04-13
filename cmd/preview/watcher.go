@@ -3,11 +3,12 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/cobra"
 )
 
 //go:embed index.html
@@ -76,6 +77,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/copy/", api.CopyJPG)
 	http.HandleFunc("/camera/config", api.GetCameraConfig)
 	http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
+	http.HandleFunc("/top", api.Top)
 
 	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {
