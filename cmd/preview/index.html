@@ -11,15 +11,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <script>
-    //https://coolors.co/palette/ccd5ae-e9edc9-fefae0-faedcd-d4a373
     let currentImage = "";
-    // dashcameServer = "http://192.168.0.10:3333"
     dashcameServer = ""
 
-    var ctx
-    var chart
+    let ctx
+    let  chart
 
-    function myFunction() {
+    function refreshData() {
         if (!ctx) {
             ctx = document.getElementById('myChart');
             chart = new Chart(ctx, {
@@ -119,22 +117,27 @@
         fetch(`${dashcameServer}/copy/${currentImage}`);
     }
 
-    function getCameraConfig() {
-        fetch(`${dashcameServer}/camera/config`)
-    }
-
     function applyCameraConfig() {
+        const camConfigItems = document.getElementsByClassName("cam-config");
+        const config = {};
+        for (let item of camConfigItems) {
+            console.log(item.id, item.value);
+            config[item.id] = item.value;
+        }
+
         let opts = {
             method: 'POST',
-            body: '',
+            body: JSON.stringify(config),
         }
-        fetch(`${dashcameServer}/camera/config/apply`, opts)
+        fetch(`${dashcameServer}/camera/restart`, opts).catch(function (e) {
+            alert(e);
+        });
     }
 </script>
-<body onload="myFunction()">
+<body onload="refreshData()">
 <script>
     const intervalId = window.setInterval(function () {
-        myFunction()
+        refreshData()
     }, 1000);
 </script>
 
@@ -151,7 +154,7 @@
             </table>
             <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
                 <tr>
-                    <td id="image-path" colspan="2">
+                    <td colspan="2">
                         <div>
                             <canvas id="myChart"></canvas>
                         </div>
@@ -245,7 +248,7 @@
                         <span>Shutter:</span>
                     </td>
                     <td>
-                        <input id="shutter" value="0">
+                        <input class="cam-config" id="shutter" value="0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -253,7 +256,7 @@
                         <span>Analog Gain:</span>
                     </td>
                     <td>
-                        <input id="analoggain" value="0">
+                        <input class="cam-config" id="analoggain" value="0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -261,7 +264,7 @@
                         <span>metering:</span>
                     </td>
                     <td>
-                        <select id="metering">
+                        <select class="cam-config" id="metering">
                             <option value="centre">centre</option>
                             <option value="spot">spot</option>
                             <option value="average">average</option>
@@ -274,7 +277,7 @@
                         <span>exposure:</span>
                     </td>
                     <td>
-                        <select id="exposure">
+                        <select class="cam-config" id="exposure">
                             <option value="normal">normal</option>
                             <option value="sport">sport</option>
                         </select>
@@ -285,7 +288,7 @@
                         <span>ev (exposure compensation):</span>
                     </td>
                     <td>
-                        <input id="ev" value="0">
+                        <input class="cam-config" id="ev" value="0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -293,23 +296,24 @@
                         <span>awb:</span>
                     </td>
                     <td>
-                        <select id="awb">
+                        <select class="cam-config" id="awb">
                             <option value="auto">auto</option>
                             <option value="incandescent">incandescent</option>
                             <option value="tungsten">tungsten</option>
                             <option value="fluorescent">fluorescent</option>
                             <option value="indoor">indoor</option>
                             <option value="daylight">daylight</option>
-                            <option value="cloudy">custom</option>
+                            <option value="cloudy">cloudy</option>
+                                <option value="custom">custom</option>
                         </select>
                     </td>
                 </tr>
                 <tr style="width: 100%;">
                     <td>
-                        <span>awbgains:</span>
+                        <span>awb gains:</span>
                     </td>
                     <td>
-                        <input id="awbgains" value="0.0,0.0">
+                        <input class="cam-config" id="awbgains" value="0.0,0.0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -317,7 +321,7 @@
                         <span>brightness (-1.0 to 1.0):</span>
                     </td>
                     <td>
-                        <input id="brightness" value="0">
+                        <input class="cam-config" id="brightness" value="0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -325,7 +329,7 @@
                         <span>contrast:<br/>where 1.0 = normal contrast</span>
                     </td>
                     <td>
-                        <input id="contrast" value="0">
+                        <input class="cam-config" id="contrast" value="1.0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -333,7 +337,7 @@
                         <span>saturation:<br/>where 1.0 = normal and 0.0 = greyscale</span>
                     </td>
                     <td>
-                        <input id="saturation" value="0">
+                        <input class="cam-config" id="saturation" value="1.0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -341,7 +345,7 @@
                         <span>sharpness:<br/>where 1.0 = normal sharpening"</span>
                     </td>
                     <td>
-                        <input id="sharpness" value="0">
+                        <input class="cam-config" id="sharpness" value="1.0">
                     </td>
                 </tr>
                 <tr style="width: 100%;">
@@ -349,7 +353,7 @@
                         <span>denoise:</span>
                     </td>
                     <td>
-                        <select id="denoise">
+                        <select class="cam-config" id="denoise">
                             <option value="auto">auto</option>
                             <option value="off">off</option>
                             <option value="cdn_off">cdn_off</option>
@@ -363,7 +367,7 @@
                         <div style="margin-top: 20px">
                             <button onclick="myFunction()">Refresh</button>
                             <button onclick="copyImage()">Copy image</button>
-                            <button onclick="copyImage()">Apply</button>
+                            <button onclick="applyCameraConfig()">Apply</button>
                         </div>
                     </td>
                 </tr>
@@ -372,7 +376,7 @@
         <td style="width: 75%;">
             <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
                 <tr>
-                    <td id="image-path" colspan="2">
+                    <td>
                         <img id="my-image" width="100%" src="file:///Users/cbillett/Downloads/scale_first.jpg"
                              alt="image">
                     </td>

@@ -88,8 +88,9 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/framejpg/", api.GetJPG)
 	http.HandleFunc("/preview", api.FrameHTML)
 	http.HandleFunc("/copy/", api.CopyJPG)
-	http.HandleFunc("/camera/config", api.GetCameraConfig)
-	http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
+	http.HandleFunc("/camera/restart", api.RestartBridge)
+	http.HandleFunc("/camera/stop", api.StopBridge)
+	//http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
 	http.HandleFunc("/top", api.Top)
 	http.HandleFunc("/gps", api.GPS)
 

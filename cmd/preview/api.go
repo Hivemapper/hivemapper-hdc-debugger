@@ -96,6 +96,7 @@ type Api struct {
 	lastFrame   *Frame
 	path        string
 	gpsStats    *GPSStats
+	bridgeCmd   *exec.Cmd
 }
 
 func NewApi(newFilenames chan string, imagesPath string, gpsStats *GPSStats) *Api {
@@ -283,75 +284,149 @@ func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-func (a *Api) GetCameraConfig(w http.ResponseWriter, r *http.Request) {
-	cmd := exec.Command("cat", "/Users/eduardvoiculescu/Desktop/mnt/data/opt/dashcam/bin/camera_config.json")
-	fmt.Println("command", cmd)
-	out, err := cmd.Output()
-	if err != nil {
-		fmt.Println(err)
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(out)
-	w.WriteHeader(200)
-}
-
-func (a *Api) ApplyCameraConfig(w http.ResponseWriter, r *http.Request) {
+func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Write([]byte("method supported: POST"))
 		w.WriteHeader(500)
 		return
 	}
 
-	defer r.Body.Close()
-	body, err := io.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(500)
+		return
+	}
+	fmt.Println("data:", string(data))
+
+	config := make(map[string]string)
+	err = json.Unmarshal(data, &config)
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
 		return
 	}
 
-	var cameraConfig *CameraConfig
-	err = json.Unmarshal(body, cameraConfig)
+	args := []string{
+		"--config", "/opt/dashcam/bin/camera_config.json",
+		"--segment", "0",
+		"--timeout", "0",
+		"--tuning-file", "/opt/dashcam/bin/imx477.json",
+	}
+
+	for k, V := range config {
+		args = append(args, "--"+k)
+		args = append(args, V)
+	}
+
+	if a.bridgeCmd != nil {
+		err := a.bridgeCmd.Process.Kill()
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			w.WriteHeader(500)
+			return
+		}
+	}
+
+	cmd := exec.Command("/opt/dashcam/bin/libcamera-bridge", args...)
+
+	fmt.Println("command", cmd)
+
+	err = cmd.Start()
 	if err != nil {
+		fmt.Println("command error:", err)
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
 		return
 	}
 
-	// todo: take the commands and rerun the camera bridge with the new commands
+	a.bridgeCmd = cmd
+	w.WriteHeader(200)
 }
 
-type CameraConfig struct {
-	Fps               int     `json:"fps,omitempty"`
-	Width             int     `json:"width,omitempty"`
-	Height            int     `json:"height,omitempty"`
-	Codec             string  `json:"codec,omitempty"`
-	Quality           int     `json:"quality,omitempty"`
-	CropWidth         int     `json:"crop_width,omitempty"`
-	CropHeight        int     `json:"crop_height,omitempty"`
-	CropOffsetFromTop int     `json:"crop_offset_from_top,omitempty"`
-	Segment           int     `json:"segment,omitempty"`
-	Timeout           int     `json:"timeout,omitempty"`
-	Brightness        float64 `json:"brightness,omitempty"`
-	Sharpness         float64 `json:"sharpness,omitempty"`
-	Saturation        float64 `json:"saturation,omitempty"`
-	Shutter           int     `json:"shutter,omitempty"`
-	Gain              int     `json:"gain,omitempty"`
-	Awb               string  `json:"awb,omitempty"`
+func (a *Api) StopBridge(w http.ResponseWriter, r *http.Request) {
+	if a.bridgeCmd != nil {
+		err := a.bridgeCmd.Process.Kill()
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			w.WriteHeader(500)
+			return
+		}
+	}
+	a.bridgeCmd = nil
+	w.WriteHeader(200)
 }
 
-// types of awb
-const (
-	Auto         string = "auto"
-	Incandescent        = "incandescent"
-	Tungsten            = "tungsten"
-	Fluorescent         = "fluorescent"
-	Indoor              = "indoor"
-	Daylight            = "daylight"
-	Cloudy              = "cloudy"
-	Custom              = "custom"
-)
+//func (a *Api) GetCameraConfig(w http.ResponseWriter, r *http.Request) {
+//	cmd := exec.Command("cat", "/Users/eduardvoiculescu/Desktop/mnt/data/opt/dashcam/bin/camera_config.json")
+//	fmt.Println("command", cmd)
+//	out, err := cmd.Output()
+//	if err != nil {
+//		fmt.Println(err)
+//		w.Write([]byte(err.Error()))
+//		w.WriteHeader(500)
+//		return
+//	}
+//
+//	w.Header().Set("Content-Type", "application/json")
+//	w.Write(out)
+//	w.WriteHeader(200)
+//}
+
+//
+//func (a *Api) ApplyCameraConfig(w http.ResponseWriter, r *http.Request) {
+//	if r.Method != "POST" {
+//		w.Write([]byte("method supported: POST"))
+//		w.WriteHeader(500)
+//		return
+//	}
+//
+//	defer r.Body.Close()
+//	body, err := io.ReadAll(r.Body)
+//	if err != nil {
+//		w.Write([]byte(err.Error()))
+//		w.WriteHeader(500)
+//		return
+//	}
+//
+//	var cameraConfig *CameraConfig
+//	err = json.Unmarshal(body, cameraConfig)
+//	if err != nil {
+//		w.Write([]byte(err.Error()))
+//		w.WriteHeader(500)
+//		return
+//	}
+//
+//	// todo: take the commands and rerun the camera bridge with the new commands
+//}
+
+//type CameraConfig struct {
+//	Fps               int     `json:"fps,omitempty"`
+//	Width             int     `json:"width,omitempty"`
+//	Height            int     `json:"height,omitempty"`
+//	Codec             string  `json:"codec,omitempty"`
+//	Quality           int     `json:"quality,omitempty"`
+//	CropWidth         int     `json:"crop_width,omitempty"`
+//	CropHeight        int     `json:"crop_height,omitempty"`
+//	CropOffsetFromTop int     `json:"crop_offset_from_top,omitempty"`
+//	Segment           int     `json:"segment,omitempty"`
+//	Timeout           int     `json:"timeout,omitempty"`
+//	Brightness        float64 `json:"brightness,omitempty"`
+//	Sharpness         float64 `json:"sharpness,omitempty"`
+//	Saturation        float64 `json:"saturation,omitempty"`
+//	Shutter           int     `json:"shutter,omitempty"`
+//	Gain              int     `json:"gain,omitempty"`
+//	Awb               string  `json:"awb,omitempty"`
+//}
+
+//// types of awb
+//const (
+//	Auto         string = "auto"
+//	Incandescent        = "incandescent"
+//	Tungsten            = "tungsten"
+//	Fluorescent         = "fluorescent"
+//	Indoor              = "indoor"
+//	Daylight            = "daylight"
+//	Cloudy              = "cloudy"
+//	Custom              = "custom"
+//)
