@@ -3,6 +3,7 @@ module github.com/streamingfast/hivemapepr-jpeg-preview
 go 1.20
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/mackerelio/go-osstat v0.2.4

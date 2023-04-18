@@ -15,10 +15,10 @@ import (
 var index string
 
 var fileWatcherCmd = &cobra.Command{
-	Use:   "watch {path}",
+	Use:   "watch {images-path} {gps-path}",
 	Short: "watch file stats for a folder",
 	RunE:  watchRunE,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 }
 
 func init() {
@@ -27,7 +27,10 @@ func init() {
 }
 
 func watchRunE(cmd *cobra.Command, args []string) error {
-	folder := args[0]
+	imagesPath := args[0]
+	gpsPath := args[1]
+
+	fmt.Println("watchRunE: ", imagesPath, gpsPath)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -36,7 +39,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	defer watcher.Close()
 
 	done := make(chan bool)
-	newFilepaths := make(chan string)
+	newFilePaths := make(chan string)
 	go func() {
 		defer close(done)
 
@@ -47,8 +50,8 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 					return
 				}
 				if event.Op == fsnotify.Create {
-					if strings.HasSuffix(event.Name, "jpg") {
-						newFilepaths <- event.Name
+					if strings.HasSuffix(event.Name, "jpg") || strings.HasSuffix(event.Name, "json") {
+						newFilePaths <- event.Name
 					}
 				}
 			case err, ok := <-watcher.Errors:
@@ -61,13 +64,23 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 
 	}()
 
-	fmt.Printf("About to watch folder: %s\n", folder)
-	err = watcher.Add(folder)
+	fmt.Printf("About to watch imagesPath: %s\n", imagesPath)
+	err = watcher.Add(imagesPath)
 	if err != nil {
-		return fmt.Errorf("adding folder %s: %w", folder, err)
+		return fmt.Errorf("adding imagesPath %s: %w", imagesPath, err)
 	}
 
-	api := NewApi(newFilepaths, folder)
+	err = watcher.Add(gpsPath)
+	if err != nil {
+		return fmt.Errorf("adding imagesPath %s: %w", imagesPath, err)
+	}
+	gpsStats := NewGPSStats()
+	err = gpsStats.Init(gpsPath)
+	if err != nil {
+		return fmt.Errorf("gpsStatsInit: %w", err)
+	}
+
+	api := NewApi(newFilePaths, imagesPath, gpsStats)
 
 	listenAddr := mustGetString(cmd, "listen-addr")
 
@@ -78,6 +91,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/camera/config", api.GetCameraConfig)
 	http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
 	http.HandleFunc("/top", api.Top)
+	http.HandleFunc("/gps", api.GPS)
 
 	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {

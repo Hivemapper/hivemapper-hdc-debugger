@@ -92,15 +92,17 @@ type FrameInfo struct {
 }
 
 type Api struct {
-	newFiles  chan string
-	lastFrame *Frame
-	path      string
+	newFilePath chan string
+	lastFrame   *Frame
+	path        string
+	gpsStats    *GPSStats
 }
 
-func NewApi(newFilenames chan string, path string) *Api {
+func NewApi(newFilenames chan string, imagesPath string, gpsStats *GPSStats) *Api {
 	api := &Api{
-		newFiles: newFilenames,
-		path:     path,
+		gpsStats:    gpsStats,
+		newFilePath: newFilenames,
+		path:        imagesPath,
 	}
 
 	frameStats = &FrameStats{}
@@ -108,10 +110,15 @@ func NewApi(newFilenames chan string, path string) *Api {
 	go func() {
 		for {
 			select {
-			case filename := <-newFilenames:
-				if stat, err := os.Stat(filename); err == nil {
+			case filePath := <-newFilenames:
+				if stat, err := os.Stat(filePath); err == nil {
+					//fmt.Println("filePath:", filePath)
+					if strings.Contains(filePath, "gps") && strings.HasSuffix(filePath, ".json") {
+						fmt.Println("gpsStats.processFile:", filePath, err)
+						err = gpsStats.processFile(filePath)
+						continue
+					}
 
-					fmt.Println("filename:", filename, frameStats.frameCount)
 					frameStats.frameCount++
 					frameStats.FrameTotalCount++
 					frameStats.frameSizeSum += stat.Size()
@@ -159,6 +166,20 @@ func (a *Api) Top(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data, err := json.Marshal(top)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	w.Header().Add("content-type", "application/json")
+	w.Write(data)
+}
+
+func (a *Api) GPS(w http.ResponseWriter, r *http.Request) {
+	if a.gpsStats == nil {
+		return
+	}
+	data, err := json.Marshal(a.gpsStats.ToSortedStats())
 	if err != nil {
 		w.WriteHeader(500)
 		return
