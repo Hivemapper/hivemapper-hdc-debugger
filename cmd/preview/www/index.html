@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview</title>
+    <style>
+        .value {
+            text-align: right;
+        }
+    </style>
+    <script src="https://jspm.dev/@spectrum-web-components/bundle/elements.js" type="module"></script>
+    <style src="https://jspm.dev/@spectrum-web-components/bundle/spectrum.css" type="module"></style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<script>
+    let currentImage = "";
+    dashcameServer = ""
+
+    let ctx
+    let chart
+
+    function refreshData() {
+        if (!ctx) {
+            ctx = document.getElementById('myChart');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'hdop',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'pdop',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'sat_used',
+                            borderWidth: 1
+                        }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        fetch(`${dashcameServer}/lastframe`)
+            .then((response) => response.json())
+            .then(function (data) {
+                currentImage = data.Filename;
+                document.getElementById("image-path").innerHTML = currentImage;
+                document.getElementById("image-size").innerHTML = Math.trunc(data.Size / 1024) + "KB";
+                document.getElementById("my-image").src = "/framejpg/" + currentImage;
+            }).catch(function (e) {
+            // console.log(e)
+        });
+        fetch(`${dashcameServer}/top`)
+            .then((response) => response.json())
+            .then(function (data) {
+                const mem = data.Memory
+                const cpu = data.CPU
+                const frame = data.FrameStats
+                document.getElementById("memory_total").innerHTML = mem.Total;
+                document.getElementById("memory_used").innerHTML = mem.Used;
+                document.getElementById("memory_free").innerHTML = mem.Free;
+                document.getElementById("memory_active").innerHTML = mem.Active;
+                document.getElementById("memory_cache").innerHTML = mem.Cached;
+                document.getElementById("memory_swap").innerHTML = mem.SwapTotal;
+
+                document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
+                document.getElementById("cpu_used").innerHTML = (cpu.Total - cpu.Idle).toFixed(0) + " %";
+                document.getElementById("cpu_user").innerHTML = cpu.User.toFixed(0) + " %";
+                document.getElementById("cpu_system").innerHTML = cpu.System.toFixed(0) + " %";
+                document.getElementById("cpu_idle").innerHTML = cpu.Idle.toFixed(0) + " %";
+
+                document.getElementById("frame_rate").innerHTML = frame.Framerate;
+                document.getElementById("frame_average_size").innerHTML = Math.trunc(frame.FrameAverageSize / 1024) + "KB";
+                document.getElementById("frame_total").innerHTML = frame.FrameTotalCount;
+
+            }).catch(function (e) {
+            console.log(e)
+        });
+
+        fetch(`${dashcameServer}/gps`)
+            .then((response) => response.json())
+            .then(function (rawData) {
+                const labels = [];
+                rawData.gdop.forEach(function (item, index) {
+                    const d = new Date(item.Ts);
+                    labels.push(d.toLocaleTimeString('en-CA', {hour12: false}));
+                });
+                chart.data.datasets.forEach((dataset, index) => {
+                    const data = ToData(dataset.label, rawData);
+                    chart.data.datasets[index].data = data;
+                });
+                chart.data.labels = labels;
+                chart.update();
+            }).catch(function (e) {
+            console.log(e)
+        });
+    }
+
+    function ToData(label, rawData) {
+        const selectedData = rawData[label];
+        const selectedDataValues = [];
+        selectedData.forEach(function (item, index) {
+            selectedDataValues.push(item.Value);
+        });
+
+        return selectedDataValues;
+    }
+
+    function copyImage() {
+        fetch(`${dashcameServer}/copy/${currentImage}`).then(async (response) => {
+            if (response.ok) {
+            } else {
+                alert("Error grabbing image:" + response.status + " " + await response.text());
+            }
+        }).catch(function (e) {
+            alert(e);
+        });
+    }
+
+    function applyCameraConfig() {
+        const camConfigItems = document.getElementsByClassName("cam-config");
+        const config = {};
+        for (let item of camConfigItems) {
+            console.log(item.id, item.value);
+            config[item.id] = item.value;
+        }
+
+        let opts = {
+            method: 'POST',
+            body: JSON.stringify(config),
+        }
+        fetch(`${dashcameServer}/camera/restart`, opts).catch(function (e) {
+            alert(e);
+        });
+    }
+</script>
+<body onload="refreshData()">
+<script>
+    const intervalId = window.setInterval(function () {
+        refreshData()
+    }, 1000);
+</script>
+
+<sp-theme scale="large" color="light">
+
+    <table style="width: 100%; background-color: #D4A373">
+        <tr style="width: 100%; ">
+
+            <td style="width: 25%; vertical-align:top; border-style: none;">
+                <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                    <tr>
+                        <td id="image-path">Image name here</td>
+                        <td id="image-size">Size here</td>
+                    </tr>
+                </table>
+                <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                    <tr>
+                        <td colspan="2">
+                            <div>
+                                <canvas id="myChart"></canvas>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD;  color: black; border-style: none; border-color: blue">
+                    <tr>
+                        <td>Framerate:</td>
+                        <td class="value" id="frame_rate">--</td>
+                    </tr>
+                    <tr>
+                        <td>Frame average size:</td>
+                        <td class="value" id="frame_average_size">--</td>
+                    </tr>
+                    <tr>
+                        <td>Frame Skip:</td>
+                        <td class="value">--</td>
+                    </tr>
+                    <tr>
+                        <td>Total:</td>
+                        <td class="value" id="frame_total"></td>
+                    </tr>
+                </table>
+                <table style="width: 100%; margin-bottom: 10px">
+                    <tr>
+                        <th style="background-color: #FEFAE0">CPU</th>
+                        <th style="background-color: #FEFAE0">Memory</th>
+                    </tr>
+                    <tr>
+                        <td style="width: 50%; height: 100%; vertical-align: top; background-color: #FEFAE0;">
+                            <table style="width: 100%; height: 100%">
+                                <tr>
+                                    <td>Total:</td>
+                                    <td class="value" id="cpu_total"></td>
+                                </tr>
+                                <tr>
+                                    <td>Used:</td>
+                                    <td class="value" id="cpu_used"></td>
+                                </tr>
+                                <tr>
+                                    <td>User:</td>
+                                    <td class="value" id="cpu_user"></td>
+                                </tr>
+                                <tr>
+                                    <td>System:</td>
+                                    <td class="value" id="cpu_system"></td>
+                                </tr>
+                                <tr>
+                                    <td>Idle:</td>
+                                    <td class="value" id="cpu_idle"></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="width: 50%; height: 100%; vertical-align: top;background-color: #FEFAE0">
+                            <table style="width: 100%;">
+                                <tr>
+                                    <td>Total:</td>
+                                    <td class="value" id="memory_total"></td>
+                                </tr>
+                                <tr>
+                                    <td>Used:</td>
+                                    <td class="value" id="memory_used"></td>
+                                </tr>
+                                <tr>
+                                    <td>Free:</td>
+                                    <td class="value" id="memory_free"></td>
+                                </tr>
+                                <tr>
+                                    <td>Active:</td>
+                                    <td class="value" id="memory_active"></td>
+                                </tr>
+                                <tr>
+                                    <td>Cached:</td>
+                                    <td class="value" id="memory_cache"></td>
+                                </tr>
+                                <tr>
+                                    <td>swap:</td>
+                                    <td class="value" id="memory_swap"></td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+                </table>
+
+                <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                    <!--                        <div>Set a fixed shutter speed</div>-->
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>Shutter:</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="shutter" value="0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>Analog Gain:</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="analoggain" value="0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>metering:</span>
+                        </td>
+                        <td>
+                            <sp-picker class="cam-config" id="metering" value="centre">
+                                <sp-menu-item value="centre">centre</sp-menu-item>
+                                <sp-menu-item value="spot">spot</sp-menu-item>
+                                <sp-menu-item value="average">average</sp-menu-item>
+                                <sp-menu-item value="custom">custom</sp-menu-item>
+                            </sp-picker>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>exposure:</span>
+                        </td>
+                        <td>
+                            <sp-picker class="cam-config" id="exposure" value="normal">
+                                <sp-menu-item value="normal">normal</sp-menu-item>
+                                <sp-menu-item value="sport">sport</sp-menu-item>
+                            </sp-picker>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>ev (exposure compensation):</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="ev" value="0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>awb:</span>
+                        </td>
+                        <td>
+                            <sp-picker class="cam-config" id="awb" value="auto">
+                                <sp-menu-item value="auto">auto</sp-menu-item>
+                                <sp-menu-item value="incandescent">incandescent</sp-menu-item>
+                                <sp-menu-item value="tungsten">tungsten</sp-menu-item>
+                                <sp-menu-item value="fluorescent">fluorescent</sp-menu-item>
+                                <sp-menu-item value="indoor">indoor</sp-menu-item>
+                                <sp-menu-item value="daylight">daylight</sp-menu-item>
+                                <sp-menu-item value="cloudy">cloudy</sp-menu-item>
+                                <sp-menu-item value="custom">custom</sp-menu-item>
+                            </sp-picker>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>awb gains:</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="awbgains" value="0.0,0.0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>brightness (-1.0 to 1.0):</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="brightness" value="0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>contrast:<br/>where 1.0 = normal contrast</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="contrast" value="1.0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>saturation:<br/>where 1.0 = normal and 0.0 = greyscale</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="saturation" value="1.0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>sharpness:<br/>where 1.0 = normal sharpening"</span>
+                        </td>
+                        <td>
+                            <sp-textfield class="cam-config" id="sharpness" value="1.0"></sp-textfield>
+                        </td>
+                    </tr>
+                    <tr style="width: 100%;">
+                        <td>
+                            <span>denoise:</span>
+                        </td>
+                        <td>
+                            <sp-picker class="cam-config" id="denoise" value="auto">
+                                <sp-menu-item value="auto">auto</sp-menu-item>
+                                <sp-menu-item value="off">off</sp-menu-item>
+                                <sp-menu-item value="cdn_off">cdn_off</sp-menu-item>
+                                <sp-menu-item value="cdn_fast">cdn_fast</sp-menu-item>
+                                <sp-menu-item value="cdn_hq">cdn_hq</sp-menu-item>
+                            </sp-picker>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="margin-top: 20px">
+                                <sp-button onclick="myFunction()">Refresh</sp-button>
+                                <sp-button onclick="copyImage()">Grab</sp-button>
+                                <sp-button onclick="applyCameraConfig()">Apply Restart</sp-button>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td style="width: 75%;">
+                <table style="width:100%; margin-bottom: 10px; background-color: #FAEDCD; color: black">
+                    <tr>
+                        <td>
+                            <img id="my-image" width="100%"  alt="image" src=""/>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</sp-theme>
+</body>
+</html>
+

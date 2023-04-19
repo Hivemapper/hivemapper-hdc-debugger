@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview</title>
+    <style>
+    </style>
+    <script src="https://jspm.dev/@spectrum-web-components/bundle/elements.js" type="module"></script>
+    <!--    <style src="https://jspm.dev/@spectrum-web-components/bundle/spectrum.css" type="module"></style>-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function imageZoom(root, imgID, resultID) {
+            console.log("imageZoom", imgID, resultID)
+            var img, lens, result, cx, cy;
+            img = root.querySelector(imgID);
+            result = root.querySelector(resultID);
+            /*create lens:*/
+            lens = document.createElement("DIV");
+            lens.setAttribute("class", "img-zoom-lens");
+            root.appendChild(lens);
+            /*insert lens:*/
+            img.parentElement.insertBefore(lens, img);
+            /*calculate the ratio between result DIV and lens:*/
+            cx = result.offsetWidth / lens.offsetWidth;
+            cy = result.offsetHeight / lens.offsetHeight;
+
+            /*set background properties for the result DIV:*/
+            console.log("?humm? ",img.width, img.height )
+            result.style.backgroundSize = (img.width * cx) + "px " + (img.height * cy) + "px";
+            result.style.backgroundImage = "url('" + img.src + "')";
+
+            /*execute a function when someone moves the cursor over the image, or the lens:*/
+            lens.addEventListener("mousemove", moveLens);
+            img.addEventListener("mousemove", moveLens);
+            /*and also for touch screens:*/
+            lens.addEventListener("touchmove", moveLens);
+            img.addEventListener("touchmove", moveLens);
+
+            function moveLens(e) {
+                var pos, x, y;
+                /*prevent any other actions that may occur when moving over the image:*/
+                e.preventDefault();
+                /*get the cursor's x and y positions:*/
+                pos = getCursorPos(e);
+                /*calculate the position of the lens:*/
+                x = pos.x - (lens.offsetWidth / 2);
+                y = pos.y - (lens.offsetHeight / 2);
+                /*prevent the lens from being positioned outside the image:*/
+                if (x > img.width - lens.offsetWidth) {
+                    x = img.width - lens.offsetWidth;
+                }
+                if (x < 0) {
+                    x = 0;
+                }
+                if (y > img.height - lens.offsetHeight) {
+                    y = img.height - lens.offsetHeight;
+                }
+                if (y < 0) {
+                    y = 0;
+                }
+                /*set the position of the lens:*/
+                lens.style.left = x + "px";
+                lens.style.top = y + "px";
+                /*display what the lens "sees":*/
+                result.style.backgroundPosition = "-" + (x * cx) + "px -" + (y * cy) + "px";
+            }
+
+            function getCursorPos(e) {
+                var a, x = 0, y = 0;
+                e = e || window.event;
+                /*get the x and y positions of the image:*/
+                a = img.getBoundingClientRect();
+                /*calculate the cursor's x and y coordinates, relative to the image:*/
+                x = e.pageX - a.left;
+                y = e.pageY - a.top;
+                /*consider any page scrolling:*/
+                x = x - window.pageXOffset;
+                y = y - window.pageYOffset;
+                return {x: x, y: y};
+            }
+        }
+    </script>
+    <script type="module">
+        import {html, css, LitElement} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js';
+
+        class FileList extends LitElement {
+            static properties = {
+                clicked: {},
+                images: {
+                    type: [],
+                    reflect: true,
+                    converter: {
+                        fromAttribute: (value, type) => {
+                            if (value === "") {
+                                return []
+                            }
+                            console.log("!!!!:", value)
+                            return Array.from(JSON.parse(value))
+                        },
+                    },
+                },
+            };
+
+            constructor() {
+                super();
+                this.images = [];
+            }
+
+            _dispatchImageSelected(e) {
+                const options = {
+                    detail: e.target.value,
+                    bubbles: true,
+                    composed: true,
+                };
+                this.dispatchEvent(new CustomEvent('imageSelected', options));
+            }
+
+            render() {
+                return html`
+                    <p>File list</p>
+                    <sp-menu
+                            label="Choose a shape"
+                            selects="single"
+                            @change=${this._dispatchImageSelected}
+                    >
+                        ${this.images.map((i) => html`
+                            <sp-menu-item value=${i}>${i}</sp-menu-item>
+                        `)}
+
+                    </sp-menu>
+                `;
+            }
+        }
+
+        customElements.define('file-list', FileList);
+
+        class FileCompare extends LitElement {
+            static styles = css`
+        .img-zoom-container {
+            // background-color: yellow;
+            position: relative;
+        }
+
+        .img-zoom-lens {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            /*set the size of the lens:*/
+            width: 100px;
+            height: 100px;
+        }
+
+        .img-zoom-result {
+            // background-color: blue;
+            border: 1px solid #d4d4d4;
+            /*set the size of the result div:*/
+            width: 300px;
+            height: 300px;
+        }
+  `;
+            static properties = {
+                images: {
+                    type: []
+                },
+                image1: "",
+                image1Args: []
+            };
+
+            constructor() {
+                super();
+                this.data = "";
+                this.image1 = "";
+                this.image1Args = []
+                this.loadData()
+
+            }
+
+            firstUpdated() {
+                const img = this.renderRoot.querySelector("#image-1")
+                console.log("firstUpdated", img)
+                const rr = this.renderRoot
+                img.onload = function(){
+                    console.log("Loaded grrrr:", img)
+                    imageZoom(rr, "#image-1", "#myresult");
+                }
+            }
+
+            updated() {
+            }
+
+            loadData() {
+                fetch('/grabbed')
+                    .then(async (response) => {
+                        if (response.ok) {
+                            this.data = await response.json()
+                            console.log(this.data)
+                            this.images = JSON.stringify(Object.keys(this.data))
+                            this.requestUpdate();
+                        } else {
+                            alert("Error grabbing image:" + response.status + " " + await response.text());
+                        }
+                    });
+            }
+
+            _imageSelected(e) {
+                this.image1 = e.detail
+                const args = this.data[this.image1].args
+                this.image1Args = []
+                Object.keys(args).map((k) => {
+                    if (k === "config" || k === "tuning-file") {
+                        return
+                    }
+                    this.image1Args.push({key: k, value: args[k]})
+                })
+                console.log("image selected:", this.image1)
+
+                this.requestUpdate();
+            }
+
+            render() {
+                return html`
+                    <sp-split-view>
+                        <div style="width: 15%;">
+                            <div id="myresult" class="img-zoom-result"></div>
+                            <file-list images=${this.images} @imageSelected="${this._imageSelected}"></file-list>
+                        </div>
+                        <div>
+                            <div style=" color: black; position: relative; width: 320px; max-width: 100%;" >
+                                <sp-popover dialog open style="--spectrum-popover-dialog-min-width: 0; height: 100%;  background: rgba(204, 204, 204, 0.5);">
+                                    <div style="font-size: 18px; font-weight: 700; padding-bottom: 30px;">
+                                        Popover title
+                                    </div>
+                                    <div style="font-size: 14px; height: 100%">
+                                        <sp-menu>
+                                            ${this.image1Args.map((arg) => html`
+                                                <sp-menu-item>${arg.key} : ${arg.value}</sp-menu-item>
+                                            `)}
+                                        </sp-menu>
+                                    </div>
+                                </sp-popover>
+<!--                                <div class="img-zoom-container">-->
+                                    <img id="image-1" src="/grabbedjpg/${this.image1}"/>
+<!--                                </div>-->
+                            </div>
+                        </div>
+                    </sp-split-view>
+                `;
+            }
+        }
+
+        customElements.define('file-compare', FileCompare);
+    </script>
+
+</head>
+<body>
+<sp-theme scale="large" color="light">
+    <file-compare></file-compare>
+</sp-theme>
+</body>
+</html>
+

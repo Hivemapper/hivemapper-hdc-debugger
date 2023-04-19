@@ -1,24 +1,26 @@
 package main
 
 import (
+	"embed"
 	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 )
 
-//go:embed index.html
-var index string
+//go:embed www/*
+var content embed.FS
 
 var fileWatcherCmd = &cobra.Command{
-	Use:   "watch {images-path} {gps-path}",
+	Use:   "watch {images-imagePath} {gps-imagePath} {grab-Path}",
 	Short: "watch file stats for a folder",
 	RunE:  watchRunE,
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(3),
 }
 
 func init() {
@@ -29,6 +31,7 @@ func init() {
 func watchRunE(cmd *cobra.Command, args []string) error {
 	imagesPath := args[0]
 	gpsPath := args[1]
+	grabPath := args[2]
 
 	fmt.Println("watchRunE: ", imagesPath, gpsPath)
 
@@ -80,17 +83,23 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("gpsStatsInit: %w", err)
 	}
 
-	api := NewApi(newFilePaths, imagesPath, gpsStats)
+	api := NewApi(newFilePaths, imagesPath, grabPath, gpsStats)
 
 	listenAddr := mustGetString(cmd, "listen-addr")
 
+	if os.Getenv("DEBUG") == "true" {
+		http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./cmd/preview/www/"))))
+	} else {
+		http.Handle("/www/", http.FileServer(http.FS(content)))
+	}
+
 	http.HandleFunc("/lastframe", api.GetLastFrame)
 	http.HandleFunc("/framejpg/", api.GetJPG)
-	http.HandleFunc("/preview", api.FrameHTML)
+	http.HandleFunc("/grabbedjpg/", api.GetGrabJPG)
 	http.HandleFunc("/copy/", api.CopyJPG)
+	http.HandleFunc("/grabbed", api.GetGrabbed)
 	http.HandleFunc("/camera/restart", api.RestartBridge)
 	http.HandleFunc("/camera/stop", api.StopBridge)
-	//http.HandleFunc("/camera/config/apply", api.ApplyCameraConfig)
 	http.HandleFunc("/top", api.Top)
 	http.HandleFunc("/gps", api.GPS)
 

@@ -87,23 +87,21 @@ type Frame struct {
 	Ts       time.Time
 }
 
-type FrameInfo struct {
-	Frame *Frame
-}
-
 type Api struct {
 	newFilePath chan string
 	lastFrame   *Frame
-	path        string
+	imagePath   string
+	grabPath    string
 	gpsStats    *GPSStats
 	bridgeCmd   *exec.Cmd
 }
 
-func NewApi(newFilenames chan string, imagesPath string, gpsStats *GPSStats) *Api {
+func NewApi(newFilenames chan string, imagesPath string, grabPath string, gpsStats *GPSStats) *Api {
 	api := &Api{
 		gpsStats:    gpsStats,
 		newFilePath: newFilenames,
-		path:        imagesPath,
+		imagePath:   imagesPath,
+		grabPath:    grabPath,
 	}
 
 	frameStats = &FrameStats{}
@@ -162,32 +160,34 @@ type CPU struct {
 	User, System, Idle, Nice, Total float64
 }
 
-func (a *Api) Top(w http.ResponseWriter, r *http.Request) {
+func (a *Api) Top(w http.ResponseWriter, _ *http.Request) {
 	if top == nil {
 		return
 	}
 	data, err := json.Marshal(top)
 	if err != nil {
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	w.Header().Add("content-type", "application/json")
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
-func (a *Api) GPS(w http.ResponseWriter, r *http.Request) {
+func (a *Api) GPS(w http.ResponseWriter, _ *http.Request) {
 	if a.gpsStats == nil {
 		return
 	}
 	data, err := json.Marshal(a.gpsStats.ToSortedStats())
 	if err != nil {
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	w.Header().Add("content-type", "application/json")
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {
@@ -195,106 +195,138 @@ func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {
 	pathElems := strings.Split(path, "/")
 	filename := pathElems[len(pathElems)-1]
 
-	f, err := os.Open(filepath.Join(a.path, filename))
+	f, err := os.Open(filepath.Join(a.imagePath, filename))
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 	data, err := io.ReadAll(f)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	w.Header().Add("content-type", "image/jpeg")
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
-func (a *Api) GetLastFrame(w http.ResponseWriter, r *http.Request) {
+func (a *Api) GetGrabJPG(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	pathElems := strings.Split(path, "/")
+	filename := pathElems[len(pathElems)-1]
+
+	fmt.Println("GetGrabJPG:", filename)
+	f, err := os.Open(filepath.Join(a.grabPath, filename))
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	//fmt.Println("GetGrabJPG:", data)
+	w.Header().Add("content-type", "image/jpeg")
+	_, _ = w.Write(data)
+}
+
+func (a *Api) GetLastFrame(w http.ResponseWriter, _ *http.Request) {
 	if a.lastFrame != nil {
 		data, err := json.Marshal(a.lastFrame)
 		if err != nil {
-			w.Write([]byte(err.Error()))
 			w.WriteHeader(500)
+			_, _ = w.Write([]byte(err.Error()))
 			return
 		}
 		w.Header().Add("content-type", "application/json")
-		w.Write(data)
+		_, _ = w.Write(data)
 	}
-}
-
-func (a *Api) FrameHTML(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(index))
 }
 
 func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	pathElems := strings.Split(path, "/")
 	filename := pathElems[len(pathElems)-1]
-	fullFilename := filepath.Join(a.path, pathElems[len(pathElems)-1])
 
-	source, err := os.Open(fullFilename)
-	if err != nil {
+	if !strings.HasSuffix(filename, ".jpg") {
 		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte("not a jpg file"))
 		return
 	}
 
-	defer source.Close()
+	sourceFilePath := filepath.Join(a.imagePath, pathElems[len(pathElems)-1])
 
-	copyFolderPath := filepath.Join("/mnt/data", "/copy")
-	err = os.MkdirAll(copyFolderPath, os.ModePerm)
+	sourceFile, err := os.Open(sourceFilePath)
 	if err != nil {
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	destinationPath := filepath.Join(copyFolderPath, filename)
-	fmt.Println("destinationPath:", destinationPath)
+	defer func(sourceFile *os.File) {
+		_ = sourceFile.Close()
+	}(sourceFile)
 
-	destination, err := os.Create(destinationPath)
+	err = os.MkdirAll(a.grabPath, os.ModePerm)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	fmt.Printf("destination %s\n", destination.Name())
-	fmt.Printf("source %s\n", source.Name())
+	destinationFile := filepath.Join(a.grabPath, filename)
+	fmt.Println("destinationFile:", destinationFile)
 
-	defer destination.Close()
-	data, err := io.ReadAll(source)
+	data, err := io.ReadAll(sourceFile)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	err = os.WriteFile(destination.Name(), data, 0644)
+	err = os.WriteFile(destinationFile, data, 0644)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	w.Write([]byte("Copied!"))
+	jsonFilename := strings.Replace(filename, ".jpg", ".json", 1)
+
+	data, err = json.Marshal(a.bridgeCmd.Args)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	err = os.WriteFile(filepath.Join(a.grabPath, jsonFilename), data, 0644)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
 	w.WriteHeader(200)
+	_, _ = w.Write([]byte("Copied!"))
 }
 
 func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		w.Write([]byte("method supported: POST"))
+		_, _ = w.Write([]byte("method supported: POST"))
 		w.WriteHeader(500)
 		return
 	}
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 	fmt.Println("data:", string(data))
@@ -302,8 +334,8 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	config := make(map[string]string)
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -322,8 +354,8 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	if a.bridgeCmd != nil {
 		err := a.bridgeCmd.Process.Kill()
 		if err != nil {
-			w.Write([]byte(err.Error()))
 			w.WriteHeader(500)
+			_, _ = w.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -335,8 +367,8 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("command error:", err)
-		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -344,12 +376,12 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-func (a *Api) StopBridge(w http.ResponseWriter, r *http.Request) {
+func (a *Api) StopBridge(w http.ResponseWriter, _ *http.Request) {
 	if a.bridgeCmd != nil {
 		err := a.bridgeCmd.Process.Kill()
 		if err != nil {
-			w.Write([]byte(err.Error()))
 			w.WriteHeader(500)
+			_, _ = w.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -357,76 +389,68 @@ func (a *Api) StopBridge(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-//func (a *Api) GetCameraConfig(w http.ResponseWriter, r *http.Request) {
-//	cmd := exec.Command("cat", "/Users/eduardvoiculescu/Desktop/mnt/data/opt/dashcam/bin/camera_config.json")
-//	fmt.Println("command", cmd)
-//	out, err := cmd.Output()
-//	if err != nil {
-//		fmt.Println(err)
-//		w.Write([]byte(err.Error()))
-//		w.WriteHeader(500)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	w.Write(out)
-//	w.WriteHeader(200)
-//}
+type grabbedFile struct {
+	Name string            `json:"name"`
+	Args map[string]string `json:"args"`
+}
 
-//
-//func (a *Api) ApplyCameraConfig(w http.ResponseWriter, r *http.Request) {
-//	if r.Method != "POST" {
-//		w.Write([]byte("method supported: POST"))
-//		w.WriteHeader(500)
-//		return
-//	}
-//
-//	defer r.Body.Close()
-//	body, err := io.ReadAll(r.Body)
-//	if err != nil {
-//		w.Write([]byte(err.Error()))
-//		w.WriteHeader(500)
-//		return
-//	}
-//
-//	var cameraConfig *CameraConfig
-//	err = json.Unmarshal(body, cameraConfig)
-//	if err != nil {
-//		w.Write([]byte(err.Error()))
-//		w.WriteHeader(500)
-//		return
-//	}
-//
-//	// todo: take the commands and rerun the camera bridge with the new commands
-//}
+func (a *Api) GetGrabbed(w http.ResponseWriter, _ *http.Request) {
+	files, err := os.ReadDir(a.grabPath)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
 
-//type CameraConfig struct {
-//	Fps               int     `json:"fps,omitempty"`
-//	Width             int     `json:"width,omitempty"`
-//	Height            int     `json:"height,omitempty"`
-//	Codec             string  `json:"codec,omitempty"`
-//	Quality           int     `json:"quality,omitempty"`
-//	CropWidth         int     `json:"crop_width,omitempty"`
-//	CropHeight        int     `json:"crop_height,omitempty"`
-//	CropOffsetFromTop int     `json:"crop_offset_from_top,omitempty"`
-//	Segment           int     `json:"segment,omitempty"`
-//	Timeout           int     `json:"timeout,omitempty"`
-//	Brightness        float64 `json:"brightness,omitempty"`
-//	Sharpness         float64 `json:"sharpness,omitempty"`
-//	Saturation        float64 `json:"saturation,omitempty"`
-//	Shutter           int     `json:"shutter,omitempty"`
-//	Gain              int     `json:"gain,omitempty"`
-//	Awb               string  `json:"awb,omitempty"`
-//}
+	grabs := map[string]grabbedFile{}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(file.Name(), ".jpg") {
+			jsonFilename := strings.Replace(file.Name(), ".jpg", ".json", 1)
+			data, err := os.ReadFile(filepath.Join(a.grabPath, jsonFilename))
+			if err != nil {
+				w.WriteHeader(500)
+				_, _ = w.Write([]byte(err.Error()))
+				return
+			}
 
-//// types of awb
-//const (
-//	Auto         string = "auto"
-//	Incandescent        = "incandescent"
-//	Tungsten            = "tungsten"
-//	Fluorescent         = "fluorescent"
-//	Indoor              = "indoor"
-//	Daylight            = "daylight"
-//	Cloudy              = "cloudy"
-//	Custom              = "custom"
-//)
+			var args []string
+			err = json.Unmarshal(data, &args)
+			if err != nil {
+				w.WriteHeader(500)
+				_, _ = w.Write([]byte(err.Error()))
+				return
+			}
+			argsMap := map[string]string{}
+
+			for i := 0; i < len(args); i += 1 {
+				if strings.HasPrefix(args[i], "--") {
+					a := strings.TrimPrefix(args[i], "--")
+					if !strings.HasPrefix(args[i+1], "--") {
+						argsMap[a] = args[i+1]
+						i += 1
+						continue
+					}
+					argsMap[a] = ""
+				}
+			}
+
+			g := grabbedFile{
+				Name: file.Name(),
+				Args: argsMap,
+			}
+			grabs[file.Name()] = g
+		}
+	}
+
+	data, err := json.Marshal(grabs)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	w.Header().Add("content-type", "application/json")
+	_, _ = w.Write(data)
+}
