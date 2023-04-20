@@ -6,7 +6,6 @@
     <style>
     </style>
     <script src="https://jspm.dev/@spectrum-web-components/bundle/elements.js" type="module"></script>
-    <!--    <style src="https://jspm.dev/@spectrum-web-components/bundle/spectrum.css" type="module"></style>-->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function imageZoom(root, imgID, resultID) {
@@ -212,7 +211,6 @@
                     this.image1Args.push({key: k, value: args[k]})
                 })
                 console.log("image selected:", this.image1)
-
                 this.requestUpdate();
             }
 
@@ -224,8 +222,9 @@
                             <file-list images=${this.images} @imageSelected="${this._imageSelected}"></file-list>
                         </div>
                         <div>
-                            <div style=" color: black; position: relative; width: 320px; max-width: 100%;" >
-                                <sp-popover dialog open style="--spectrum-popover-dialog-min-width: 0; height: 100%;  background: rgba(204, 204, 204, 0.5);">
+                            <div style=" color: black; position: relative; width: 320px; max-width: 100%;">
+                                <sp-popover dialog open
+                                            style="--spectrum-popover-dialog-min-width: 0; height: 100%;  background: rgba(204, 204, 204, 0.5);">
                                     <div style="font-size: 18px; font-weight: 700; padding-bottom: 30px;">
                                         Popover title
                                     </div>
@@ -237,9 +236,7 @@
                                         </sp-menu>
                                     </div>
                                 </sp-popover>
-<!--                                <div class="img-zoom-container">-->
-                                    <img id="image-1" src="/grabbedjpg/${this.image1}"/>
-<!--                                </div>-->
+                                <img id="image-1" src="/grabbedjpg/${this.image1}"/>
                             </div>
                         </div>
                     </sp-split-view>
