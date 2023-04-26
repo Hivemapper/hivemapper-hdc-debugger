@@ -1,26 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="sl-theme-dark" style="color: var(--sl-color-neutral-700)">
 <head>
     <meta charset="UTF-8">
     <title>Preview</title>
     <style>
-        .kv{
+        h2 {
+            margin: 0;
+        }
+
+        .kv {
             display: flex;
             padding-right: 5px;
             padding-left: 5px;
         }
+
         .value {
             text-align: right;
         }
+
         label {
             padding-right: 5px;
             flex: 1;
         }
+
+        .cam-setting {
+        }
+
+        .cam-setting > div {
+            flex: 1;
+            padding: 5px;
+        }
     </style>
-    <script src="https://jspm.dev/@spectrum-web-components/bundle/elements.js" type="module"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://opensource.adobe.com/spectrum-web-components/styles.css">
-    <link rel="preload" href="https://opensource.adobe.com/spectrum-web-components/styles.css" as="style">
+    <link rel="stylesheet" href="/www/shoelace/themes/dark.css"/>
+    <script type="module" src="/www/shoelace/shoelace-autoloader.js"></script>
+
+    <script src="./chart.js"></script>
+    <script src="./exif-js"></script>
 </head>
 <script>
     let currentImage = "";
@@ -88,7 +103,7 @@
                 document.getElementById("memory_cache").innerHTML = mem.Cached;
                 document.getElementById("memory_swap").innerHTML = mem.SwapTotal;
 
-                document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
+                // document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
                 document.getElementById("cpu_used").innerHTML = (cpu.Total - cpu.Idle).toFixed(0) + " %";
                 document.getElementById("cpu_user").innerHTML = cpu.User.toFixed(0) + " %";
                 document.getElementById("cpu_system").innerHTML = cpu.System.toFixed(0) + " %";
@@ -158,218 +173,200 @@
             alert(e);
         });
     }
+
+    function stopCamera() {
+        fetch(`${dashcameServer}/camera/stop`).catch(function (e) {
+            alert(e);
+        });
+    }
 </script>
-<body onload="refreshData()">
+<body onload="refreshData()" class="sl-theme-dark">
 <script>
     const intervalId = window.setInterval(function () {
         refreshData()
-    }, 1000);
+    }, 2000);
 </script>
 
-<sp-theme scale="large" color="dark">
-    <sp-split-view>
-        <div style="width: 25%">
-            <div style="display: flex; padding:5px;">
-                <h3 id="image-path" style="flex: 1">Image name here</h3>
-                <h4 id="image-size">Size here</h4>
-            </div>
-            <h2 style="margin-top: 20px; background-color: var(--spectrum-global-color-gray-75)"
-                class="spectrum-Heading spectrum-Heading--sizeS">GPS Health</h2>
-            <div style="display: flex; padding: 5px;">
-                <canvas id="myChart"></canvas>
-            </div>
-            <sp-divider size="m"></sp-divider>
+<div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
+    <div style="height: 100%; width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
+        <div style="display: flex; padding:5px;">
+            <h3 id="image-path" style="flex: 1">Image name here</h3>
+            <h4 id="image-size">Size here</h4>
+        </div>
 
-            <h2 style="margin-top: 20px; background-color: var(--spectrum-global-color-gray-75)"
-                class="spectrum-Heading spectrum-Heading--sizeS">Frames</h2>
-            <div style="display: flex; padding:5px">
-                <div style="flex: 2">
-                    <label>Rate:</label>
-                    <span class="value" id="frame_rate">--</span>
-                </div>
-                <div style="flex: 2">
-                    <label>Average size:</label>
-                    <span class="value" id="frame_average_size">--</span>
-                </div>
-                <div style="flex: 2">
-                    <label>Total count:</label>
-                    <span class="value" id="frame_total">--</span>
-                </div>
-            </div>
-            <sp-divider size="m"></sp-divider>
-            <h2 style="margin-top: 20px; background-color: var(--spectrum-global-color-gray-75)"
-                class="spectrum-Heading spectrum-Heading--sizeS">Top</h2>
-            <sp-split-view>
-                <div>
-                    <sp-split-view vertical>
-                        <label style="height: 30px">CPU</label>
-                        <div>
-                            <div class="kv">
-                                <label >Total:</label>
-                                <span class="value" id="cpu_total"></span>
-                            </div>
-                            <div class="kv">
-                                <label>Used:</label>
-                                <span class="value" id="cpu_used"></span>
-                            </div>
-                            <div class="kv">
-                                <label>User:</label>
-                                <span class="value" id="cpu_user"></span>
-                            </div>
-                            <div class="kv">
-                                <label>System:</label>
-                                <span class="value" id="cpu_system"></span>
-                            </div>
-                            <div class="kv">
-                                <label>Idle:</label>
-                                <span class="value" id="cpu_idle"></span>
-                            </div>
-                        </div>
-                    </sp-split-view>
-                </div>
-                <div>
-                    <sp-split-view vertical>
-                        <label style="height: 30px">Memory</label>
-                        <div>
-                            <div class="kv">
-                                <label>Total:</label>
-                                <span class="value" id="memory_total"></span>
-                            </div>
-                            <div class="kv">
-                                <label>Used:</label>
-                                <span class="value" id="memory_used"></span>
-                            </div>
-                            <div class="kv">
-                                <label>Free:</label>
-                                <span class="value" id="memory_free"></span>
-                            </div>
-                            <div class="kv">
-                                <label>Active:</label>
-                                <span class="value" id="memory_active">--</span>
-                            </div>
-                            <div class="kv">
-                                <label>Cache:</label>
-                                <span class="value" id="memory_cache">--</span>
-                            </div>
-                            <div class="kv">
-                                <label>Swap:</label>
-                                <span class="value" id="memory_swap">--</span>
-                            </div>
-                        </div>
-                    </sp-split-view>
-                </div>
-            </sp-split-view>
+        <sl-divider></sl-divider>
+        <h2>GPS Health</h2>
+        <div style="display: flex; padding: 5px;">
+            <canvas id="myChart"></canvas>
+        </div>
 
-            <sp-divider size="m "></sp-divider>
-            <h2 style="margin-top: 20px; background-color: var(--spectrum-global-color-gray-75)"
-                class="spectrum-Heading spectrum-Heading--sizeS">Camera config</h2>
-            <div style="margin-top: 20px">
-                <sp-button onclick="myFunction()">Refresh</sp-button>
-                <sp-button onclick="copyImage()">Grab</sp-button>
-                <sp-button onclick="applyCameraConfig()">Apply Restart</sp-button>
+        <sl-divider></sl-divider>
+        <h2>Frames</h2>
+        <div style="display: flex; padding:5px">
+            <div style="flex: 2">
+                <label>Rate:</label>
+                <span class="value" id="frame_rate">--</span>
             </div>
-
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Shutter:</label>
-                </div>
-                <sp-textfield class="cam-config" id="shutter" value="0"></sp-textfield>
+            <div style="flex: 2">
+                <label>Average size:</label>
+                <span class="value" id="frame_average_size">--</span>
             </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Metering:</label>
-                </div>
-                <sp-textfield class="cam-config" id="analoggain" value="0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Analog Gain:</label>
-                </div>
-                <sp-picker class="cam-config" id="metering" value="centre">
-                    <sp-menu-item value="centre">centre</sp-menu-item>
-                    <sp-menu-item value="spot">spot</sp-menu-item>
-                    <sp-menu-item value="average">average</sp-menu-item>
-                    <sp-menu-item value="custom">custom</sp-menu-item>
-                </sp-picker>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Exposure:</label>
-                </div>
-                <sp-picker class="cam-config" id="exposure" value="normal">
-                    <sp-menu-item value="normal">normal</sp-menu-item>
-                    <sp-menu-item value="sport">sport</sp-menu-item>
-                </sp-picker>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Ev (exposure compensation):</label>
-                </div>
-                <sp-textfield class="cam-config" id="ev" value="0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>AWB:</label>
-                </div>
-                <sp-picker class="cam-config" id="awb" value="auto">
-                    <sp-menu-item value="auto">auto</sp-menu-item>
-                    <sp-menu-item value="incandescent">incandescent</sp-menu-item>
-                    <sp-menu-item value="tungsten">tungsten</sp-menu-item>
-                    <sp-menu-item value="fluorescent">fluorescent</sp-menu-item>
-                    <sp-menu-item value="indoor">indoor</sp-menu-item>
-                    <sp-menu-item value="daylight">daylight</sp-menu-item>
-                    <sp-menu-item value="cloudy">cloudy</sp-menu-item>
-                    <sp-menu-item value="custom">custom</sp-menu-item>
-                </sp-picker>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Awb gains:</label>
-                </div>
-                <sp-textfield class="cam-config" id="awbgains" value="0.0,0.0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Brightness (-1.0 to 1.0):</label>
-                </div>
-                <sp-textfield class="cam-config" id="brightness" value="0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Contrast:<br/>where 1.0 = normal contrast</label>
-                </div>
-                <sp-textfield class="cam-config" id="contrast" value="1.0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Saturation:<br/>where 1.0 = normal and 0.0 = greyscale</label>
-                </div>
-                <sp-textfield class="cam-config" id="saturation" value="1.0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Sharpness:<br/>where 1.0 = normal sharpening</label>
-                </div>
-                <sp-textfield class="cam-config" id="sharpness" value="1.0"></sp-textfield>
-            </div>
-            <div style="display: flex">
-                <div style="display: flex; flex:1; align-items: center;">
-                    <label>Denoise:</label>
-                </div>
-                <sp-picker class="cam-config" id="denoise" value="auto">
-                    <sp-menu-item value="auto">auto</sp-menu-item>
-                    <sp-menu-item value="off">off</sp-menu-item>
-                    <sp-menu-item value="cdn_off">cdn_off</sp-menu-item>
-                    <sp-menu-item value="cdn_fast">cdn_fast</sp-menu-item>
-                    <sp-menu-item value="cdn_hq">cdn_hq</sp-menu-item>
-                </sp-picker>
+            <div style="flex: 2">
+                <label>Total count:</label>
+                <span class="value" id="frame_total">--</span>
             </div>
         </div>
-        <div style="width: 75%; height: 100%">
-            <img id="my-image" width="100%" alt="image" src=""/>
+
+        <sl-divider></sl-divider>
+        <h2>Top</h2>
+        <div style="display: flex; flex-direction: row">
+            <div style="display: flex; flex: 1;">
+                <div style="display: flex; flex: 1; flex-direction: column; ">
+                    <h3>CPU</h3>
+                    <div style="display:flex; flex: 1; flex-direction: column">
+                        <div class="kv">
+                            <label>Used:</label>
+                            <span class="value" id="cpu_used"></span>
+                        </div>
+                        <div class="kv">
+                            <label>User:</label>
+                            <span class="value" id="cpu_user"></span>
+                        </div>
+                        <div class="kv">
+                            <label>System:</label>
+                            <span class="value" id="cpu_system"></span>
+                        </div>
+                        <div class="kv">
+                            <label>Idle:</label>
+                            <span class="value" id="cpu_idle"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <sl-divider vertical></sl-divider>
+            <div style="display: flex; flex: 1;">
+                <div style="display: flex; flex: 1; flex-direction: column;">
+                    <h3>Memory</h3>
+                    <div>
+                        <div class="kv">
+                            <label>Total:</label>
+                            <span class="value" id="memory_total"></span>
+                        </div>
+                        <div class="kv">
+                            <label>Used:</label>
+                            <span class="value" id="memory_used"></span>
+                        </div>
+                        <div class="kv">
+                            <label>Free:</label>
+                            <span class="value" id="memory_free"></span>
+                        </div>
+                        <div class="kv">
+                            <label>Active:</label>
+                            <span class="value" id="memory_active">--</span>
+                        </div>
+                        <div class="kv">
+                            <label>Cache:</label>
+                            <span class="value" id="memory_cache">--</span>
+                        </div>
+                        <div class="kv">
+                            <label>Swap:</label>
+                            <span class="value" id="memory_swap">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </sp-split-view>
-</sp-theme>
+    </div>
+    <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px">
+        <!--            <sl-split-panel vertical position="20" style="width: 100%">-->
+        <div style="display: flex; flex-direction: column">
+            <div slot="start" style="display: flex; flex-direction: column; width: 100%;">
+                <div class="cam-setting" style="display: flex; flex-direction: row;">
+                    <div>
+                        <div>Shutter:</div>
+                        <sl-input class="cam-config" id="shutter" value="0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Analog Gain</div>
+                        <sl-input class="cam-config" id="analoggain" value="0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Metering:</div>
+                        <sl-select class="cam-config" id="metering" value="centre">
+                            <sl-option value="centre">centre</sl-option>
+                            <sl-option value="spot">spot</sl-option>
+                            <sl-option value="average">average</sl-option>
+                            <sl-option value="custom">custom</sl-option>
+                        </sl-select>
+                    </div>
+                    <div>
+                        <div>Ev (exposure compensation):</div>
+                        <sl-input class="cam-config" id="ev" value="0"></sl-input>
+                    </div>
+                </div>
+                <div class="cam-setting" style="display: flex; flex-direction: row">
+                    <div>
+                        <div>AWB:</div>
+                        <sl-select class="cam-config" id="awb" value="auto">
+                            <sl-option value="auto">auto</sl-option>
+                            <sl-option value="incandescent">incandescent</sl-option>
+                            <sl-option value="tungsten">tungsten</sl-option>
+                            <sl-option value="fluorescent">fluorescent</sl-option>
+                            <sl-option value="indoor">indoor</sl-option>
+                            <sl-option value="daylight">daylight</sl-option>
+                            <sl-option value="cloudy">cloudy</sl-option>
+                            <sl-option value="custom">custom</sl-option>
+                        </sl-select>
+                    </div>
+                    <div>
+                        <div>Awb gains:</div>
+                        <sl-input class="cam-config" id="awbgains" value="0.0,0.0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Brightness (-1.0 to 1.0):</div>
+                        <sl-input class="cam-config" id="brightness" value="0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Contrast: 1.0 = normal</div>
+                        <sl-input class="cam-config" id="contrast" value="1.0"></sl-input>
+                    </div>
+                </div>
+                <div class="cam-setting" style="display: flex; flex-direction: row">
+                    <div>
+                        <div>Saturation: 1.0 = normal</div>
+                        <sl-input class="cam-config" id="saturation" value="1.0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Sharpness: 1.0 = normal</div>
+                        <sl-input class="cam-config" id="sharpness" value="1.0"></sl-input>
+                    </div>
+                    <div>
+                        <div>Denoise:</div>
+                        <sl-select class="cam-config" id="denoise" value="auto">
+                            <sl-option value="auto">auto</sl-option>
+                            <sl-option value="off">off</sl-option>
+                            <sl-option value="cdn_off">cdn_off</sl-option>
+                            <sl-option value="cdn_fast">cdn_fast</sl-option>
+                            <sl-option value="cdn_hq">cdn_hq</sl-option>
+                        </sl-select>
+                    </div>
+                    <div>
+                        <div>&nbsp;</div>
+                        <div>
+                            <sl-button onclick="stopCamera()">Stop</sl-button>
+                            <sl-button onclick="applyCameraConfig()">Restart</sl-button>
+                            <sl-button onclick="copyImage()">Grab</sl-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; flex: 1; padding: 5px">
+                <img id="my-image" width="100%" alt="image" src=""/>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 

@@ -127,7 +127,7 @@ func (g *GPSStats) purgeOldAverages() {
 
 	for statName, averages := range g.gpsAverageDOPs {
 		for key, average := range averages {
-			if time.Since(average.Ts) > time.Duration(2)*time.Hour {
+			if time.Since(average.Ts) > 30*time.Minute {
 				delete(g.gpsAverageDOPs[statName], key)
 			}
 		}

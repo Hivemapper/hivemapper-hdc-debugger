@@ -5,6 +5,9 @@
     <title>Preview</title>
     <style>
     </style>
+    <link rel="stylesheet" href="https://opensource.adobe.com/spectrum-web-components/styles.css">
+    <link rel="preload" href="https://opensource.adobe.com/spectrum-web-components/styles.css" as="style">
+
     <script src="https://jspm.dev/@spectrum-web-components/bundle/elements.js" type="module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -94,7 +97,7 @@
                                 return []
                             }
                             console.log("!!!!:", value)
-                            return Array.from(JSON.parse(value))
+                            return Array.from(JSON.parse(value)).reverse()
                         },
                     },
                 },
@@ -249,7 +252,7 @@
 
 </head>
 <body>
-<sp-theme scale="large" color="light">
+<sp-theme scale="large" color="dark">
     <file-compare></file-compare>
 </sp-theme>
 </body>
