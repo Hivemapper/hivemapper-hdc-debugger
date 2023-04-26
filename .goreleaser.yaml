@@ -8,10 +8,11 @@ before:
     - go generate ./...
 builds:
   - env:
-      - CGO_ENABLED=1
     goos:
       - linux
       - darwin
+    goarch:
+      - arm64
     main: ./cmd/preview
     binary: preview
 archives:
