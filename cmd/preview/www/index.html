@@ -175,7 +175,7 @@
     }
 
     function stopCamera() {
-        fetch(`${dashcameServer}/camera/stop`).catch(function (e) {
+        fetch(`${dashcameServer}/start_watching`).catch(function (e) {
             alert(e);
         });
     }
@@ -352,6 +352,7 @@
                     <div>
                         <div>&nbsp;</div>
                         <div>
+                            <sl-button onclick="stopCamera()">Start Watching</sl-button>
                             <sl-button onclick="stopCamera()">Stop</sl-button>
                             <sl-button onclick="applyCameraConfig()">Restart</sl-button>
                             <sl-button onclick="copyImage()">Grab</sl-button>

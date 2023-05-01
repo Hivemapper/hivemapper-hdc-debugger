@@ -4,12 +4,9 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
-	"strings"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +14,7 @@ import (
 var content embed.FS
 
 var fileWatcherCmd = &cobra.Command{
-	Use:   "watch {images-imagePath} {gps-imagePath} {grab-Path}",
+	Use:   "watch {images-imagesPath} {gps-imagesPath} {grab-Path}",
 	Short: "watch file stats for a folder",
 	RunE:  watchRunE,
 	Args:  cobra.ExactArgs(3),
@@ -35,55 +32,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("watchRunE: ", imagesPath, gpsPath)
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal("NewWatcher failed: ", err)
-	}
-	defer watcher.Close()
-
-	done := make(chan bool)
-	newFilePaths := make(chan string)
-	go func() {
-		defer close(done)
-
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op == fsnotify.Create {
-					if strings.HasSuffix(event.Name, "jpg") || strings.HasSuffix(event.Name, "json") {
-						newFilePaths <- event.Name
-					}
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
-			}
-		}
-
-	}()
-
-	fmt.Printf("About to watch imagesPath: %s\n", imagesPath)
-	err = watcher.Add(imagesPath)
-	if err != nil {
-		return fmt.Errorf("adding imagesPath %s: %w", imagesPath, err)
-	}
-
-	err = watcher.Add(gpsPath)
-	if err != nil {
-		return fmt.Errorf("adding imagesPath %s: %w", imagesPath, err)
-	}
-	gpsStats := NewGPSStats()
-	err = gpsStats.Init(gpsPath)
-	if err != nil {
-		return fmt.Errorf("gpsStatsInit: %w", err)
-	}
-
-	api := NewApi(newFilePaths, imagesPath, grabPath, gpsStats)
+	api := NewApi(imagesPath, gpsPath, grabPath)
 
 	listenAddr := mustGetString(cmd, "listen-addr")
 
@@ -100,6 +49,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/grabbed", api.GetGrabbed)
 	http.HandleFunc("/camera/restart", api.RestartBridge)
 	http.HandleFunc("/camera/stop", api.StopBridge)
+	http.HandleFunc("/start_watching", api.StartWatching)
 	http.HandleFunc("/top", api.Top)
 	http.HandleFunc("/gps", api.GPS)
 

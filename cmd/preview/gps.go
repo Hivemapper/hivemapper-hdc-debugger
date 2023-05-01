@@ -65,7 +65,7 @@ func (g *GPSStats) Init(gpsDataPath string) error {
 	//list all files in gpsDataPath
 	files, err := os.ReadDir(gpsDataPath)
 	if err != nil {
-		return fmt.Errorf("reading gps data imagePath: %w", err)
+		return fmt.Errorf("reading gps data imagesPath: %w", err)
 	}
 
 	for _, file := range files {
@@ -84,6 +84,7 @@ func (g *GPSStats) Init(gpsDataPath string) error {
 }
 
 func (g *GPSStats) processFile(filePath string) error {
+	fmt.Println("processing file:", filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("openning file: %w", err)

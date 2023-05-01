@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
+
 	"github.com/dustin/go-humanize"
 	"github.com/mackerelio/go-osstat/cpu"
 	"github.com/mackerelio/go-osstat/memory"
@@ -88,20 +90,22 @@ type Frame struct {
 }
 
 type Api struct {
-	newFilePath chan string
-	lastFrame   *Frame
-	imagePath   string
-	grabPath    string
-	gpsStats    *GPSStats
-	bridgeCmd   *exec.Cmd
+	filePathChannel chan string
+	lastFrame       *Frame
+	imagesPath      string
+	gpsPath         string
+	grabPath        string
+	gpsStats        *GPSStats
+	bridgeCmd       *exec.Cmd
+	watcher         *fsnotify.Watcher
 }
 
-func NewApi(newFilenames chan string, imagesPath string, grabPath string, gpsStats *GPSStats) *Api {
+func NewApi(imagesPath string, gpsPath string, grabPath string) *Api {
 	api := &Api{
-		gpsStats:    gpsStats,
-		newFilePath: newFilenames,
-		imagePath:   imagesPath,
-		grabPath:    grabPath,
+		imagesPath:      imagesPath,
+		gpsPath:         gpsPath,
+		grabPath:        grabPath,
+		filePathChannel: make(chan string),
 	}
 
 	frameStats = &FrameStats{}
@@ -109,12 +113,12 @@ func NewApi(newFilenames chan string, imagesPath string, grabPath string, gpsSta
 	go func() {
 		for {
 			select {
-			case filePath := <-newFilenames:
+			case filePath := <-api.filePathChannel:
 				if stat, err := os.Stat(filePath); err == nil {
 					//fmt.Println("filePath:", filePath)
 					if strings.Contains(filePath, "gps") && strings.HasSuffix(filePath, ".json") {
 						fmt.Println("gpsStats.processFile:", filePath, err)
-						err = gpsStats.processFile(filePath)
+						err = api.gpsStats.processFile(filePath)
 						continue
 					}
 
@@ -160,6 +164,74 @@ type CPU struct {
 	User, System, Idle, Nice, Total float64
 }
 
+func (a *Api) StartWatching(w http.ResponseWriter, _ *http.Request) {
+	if a.watcher != nil {
+		_, _ = w.Write([]byte("Already watching"))
+		return
+	}
+
+	var err error
+	a.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal("NewWatcher failed: ", err)
+	}
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-a.watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op == fsnotify.Create {
+					if strings.HasSuffix(event.Name, "jpg") || strings.HasSuffix(event.Name, "json") {
+						a.filePathChannel <- event.Name
+					}
+				}
+			case err, ok := <-a.watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+
+	}()
+
+	fmt.Printf("About to watch imagesPath: %s\n", a.imagesPath)
+	err = a.watcher.Add(a.imagesPath)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	err = a.watcher.Add(a.gpsPath)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	a.gpsStats = NewGPSStats()
+	err = a.gpsStats.Init(a.gpsPath)
+	if err != nil {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	cmd := exec.Command("/opt/dashcam/bin/stop_all.sh")
+	fmt.Println("stopping all", cmd)
+
+	err = cmd.Start()
+	if err != nil {
+		fmt.Println("command error:", err)
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+}
+
 func (a *Api) Top(w http.ResponseWriter, _ *http.Request) {
 	if top == nil {
 		return
@@ -195,7 +267,7 @@ func (a *Api) GetJPG(w http.ResponseWriter, r *http.Request) {
 	pathElems := strings.Split(path, "/")
 	filename := pathElems[len(pathElems)-1]
 
-	f, err := os.Open(filepath.Join(a.imagePath, filename))
+	f, err := os.Open(filepath.Join(a.imagesPath, filename))
 	if err != nil {
 		w.WriteHeader(500)
 		_, _ = w.Write([]byte(err.Error()))
@@ -259,7 +331,7 @@ func (a *Api) CopyJPG(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sourceFilePath := filepath.Join(a.imagePath, pathElems[len(pathElems)-1])
+	sourceFilePath := filepath.Join(a.imagesPath, pathElems[len(pathElems)-1])
 
 	sourceFile, err := os.Open(sourceFilePath)
 	if err != nil {
