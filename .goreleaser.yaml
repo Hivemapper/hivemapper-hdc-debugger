@@ -13,8 +13,8 @@ builds:
       - darwin
     goarch:
       - arm64
-    main: ./cmd/preview
-    binary: preview
+    main: ./cmd/debugger
+    binary: debugger
 archives:
   - replacements:
       darwin: Darwin
