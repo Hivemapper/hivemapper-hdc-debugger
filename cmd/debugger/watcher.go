@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed www/*
+//go:embed debug/*
 var content embed.FS
 
 var fileWatcherCmd = &cobra.Command{
@@ -37,9 +37,9 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	listenAddr := mustGetString(cmd, "listen-addr")
 
 	if os.Getenv("DEBUG") == "true" {
-		http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./cmd/preview/www/"))))
+		http.Handle("/debug/", http.StripPrefix("/debug/", http.FileServer(http.Dir("./cmd/preview/www/"))))
 	} else {
-		http.Handle("/www/", http.FileServer(http.FS(content)))
+		http.Handle("/debug/", http.FileServer(http.FS(content)))
 	}
 
 	http.HandleFunc("/lastframe", api.GetLastFrame)

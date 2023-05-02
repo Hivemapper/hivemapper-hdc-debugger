@@ -31,8 +31,8 @@
             padding: 5px;
         }
     </style>
-    <link rel="stylesheet" href="/www/shoelace/themes/dark.css"/>
-    <script type="module" src="/www/shoelace/shoelace-autoloader.js"></script>
+    <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+    <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
 
     <script src="./chart.js"></script>
     <script src="./exif-js"></script>
@@ -174,8 +174,13 @@
         });
     }
 
-    function stopCamera() {
+    function startWatch() {
         fetch(`${dashcameServer}/start_watching`).catch(function (e) {
+            alert(e);
+        });
+    }
+    function stopCamera() {
+        fetch(`${dashcameServer}/camera/stop`).catch(function (e) {
             alert(e);
         });
     }
@@ -352,7 +357,7 @@
                     <div>
                         <div>&nbsp;</div>
                         <div>
-                            <sl-button onclick="stopCamera()">Start Watching</sl-button>
+                            <sl-button onclick="startWatch()">Start Watching</sl-button>
                             <sl-button onclick="stopCamera()">Stop</sl-button>
                             <sl-button onclick="applyCameraConfig()">Restart</sl-button>
                             <sl-button onclick="copyImage()">Grab</sl-button>
