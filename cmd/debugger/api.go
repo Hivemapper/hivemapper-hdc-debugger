@@ -421,7 +421,7 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := []string{
-		"--config", "/opt/dashcam/bin/camera_config.json",
+		"--config", "/opt/dashcam/bin/camera_bridge_config.json",
 		"--segment", "0",
 		"--timeout", "0",
 		"--tuning-file", "/opt/dashcam/bin/imx477.json",
@@ -441,7 +441,7 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cmd := exec.Command("/opt/dashcam/bin/libcamera-bridge", args...)
+	cmd := exec.Command("/opt/dashcam/bin/camera-bridge", args...)
 
 	fmt.Println("command", cmd)
 
