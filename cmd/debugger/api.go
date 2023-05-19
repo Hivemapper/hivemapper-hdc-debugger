@@ -220,9 +220,18 @@ func (a *Api) StartWatching(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("/opt/dashcam/bin/stop_all.sh")
-	fmt.Println("stopping all", cmd)
+	cmd := exec.Command("systemctl", "stop", "camera-node")
+	fmt.Println("stopping camera-node", cmd)
+	err = cmd.Start()
+	if err != nil {
+		fmt.Println("command error:", err)
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
 
+	cmd = exec.Command("systemctl", "stop", "camera-bridge")
+	fmt.Println("stopping camera-bridge", cmd)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("command error:", err)
