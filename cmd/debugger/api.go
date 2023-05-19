@@ -441,7 +441,7 @@ func (a *Api) RestartBridge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cmd := exec.Command("/opt/dashcam/bin/camera-bridge", args...)
+	cmd := exec.Command("/opt/dashcam/bin/libcamera-bridge", args...)
 
 	fmt.Println("command", cmd)
 
