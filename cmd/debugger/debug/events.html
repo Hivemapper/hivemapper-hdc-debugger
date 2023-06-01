@@ -1,145 +1,165 @@
 <!DOCTYPE html>
 <html lang="en" class="sl-theme-dark" style="color: var(--sl-color-neutral-700)">
-<head>
-    <meta charset="UTF-8">
-    <title>Preview</title>
-    <style>
-        h2 {
-            margin: 0;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <title>Preview</title>
+        <style>
+            h2 {
+                margin: 0;
+            }
 
-        .kv {
-            display: flex;
-            padding-right: 5px;
-            padding-left: 5px;
-        }
+            .kv {
+                display: flex;
+                padding-right: 5px;
+                padding-left: 5px;
+            }
 
-        .value {
-            text-align: right;
-        }
+            .value {
+                text-align: right;
+            }
 
-        label {
-            padding-right: 5px;
-            flex: 1;
-        }
+            label {
+                padding-right: 5px;
+                flex: 1;
+            }
 
-        .cam-setting {
-        }
+            .cam-setting {
+            }
 
-        .cam-setting > div {
-            flex: 1;
-            padding: 5px;
-        }
-    </style>
-    <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
-    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+            .cam-setting > div {
+                flex: 1;
+                padding: 5px;
+            }
+        </style>
+        <link rel="stylesheet" href="events.css"/>
+        <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
 
-    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-    <script src="/debug/out.js"></script>
-    <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
-    <!--    <script type="module">-->
-    <!--        console.log("out.js loaded");-->
-    <!--        import {createPromiseClient, createConnectTransport} from "/debug/out.js";-->
-    <!--        var client = createPromiseClient(-->
-    <!--            EventService,-->
-    <!--            createConnectTransport({-->
-    <!--                baseUrl: "http://localhost:9000"-->
-    <!--            })-->
-    <!--        );-->
-    <!--    </script>-->
+        <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+        <script src="out.js"></script>
+        <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
+        <script>
+            var client = createPromiseClient(
+                EventService,
+                createConnectTransport({
+                    baseUrl: "http://192.168.0.10:9000"
+                })
+            );
 
-    <script>
-        console.log("Salut");
+            const req = {
+                includes: [],
+                excludes: ["Imu"]
+            }
+            const stream = client.events(req)
 
-        var client = createPromiseClient(
-            EventService,
-            createConnectTransport({
-                baseUrl: "http://192.168.0.10:9000"
-            })
-        );
+            setInterval(() => {
+                stream.next().then((e) => {
+                    const string = new TextDecoder().decode(e.value.payload);
+                    const event = JSON.parse(string);
+                    switch (event.name){
+                        case "GNSS_EVENT":
+                            changeMapCenter(event.data.latitude, event.data.longitude)
+                            break;
+                        case "STOP_DETECTED_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("stop-sign").style.color = "red";
+                            break;
+                        case "STOP_END_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("stop-sign").style.color = "#B6B6BE";
+                            break;
+                        case "DECELERATION_DETECTED_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("deceleration").style.color = "#EE4B2B";
+                            break
+                        case "DECELERATION_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("deceleration").style.color = "#B6B6BE";
+                            break;
+                        case "ACCELERATION_DETECTED_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("acceleration").style.color = "#3CB043";
+                            break;
+                        case "ACCELERATION_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("acceleration").style.color = "#B6B6BE";
+                            break;
+                        case "RIGHT_TURN_DETECTED_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("right-turn").style.color = "#6495ED";
+                            break;
+                        case "RIGHT_TURN_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("right-turn").style.color = "#B6B6BE";
+                            break;
+                        case "LEFT_TURN_DETECTED_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("left-turn").style.color = "#6495ED";
+                            break;
+                        case "LEFT_TURN_EVENT":
+                            console.log("Event:", event);
+                            document.getElementById("left-turn").style.color = "#B6B6BE";
+                            break;
+                    }
+                });
+            }, 0);
 
-        console.log("Client:", client);
+            // Creating map options
+            const zoom = 20;
+            const mapOptions = {
+                center: [17.385044, 78.486671],
+                zoom: zoom
+            }
 
-        const req = {
-            includes: [],
-            excludes: ["Imu"]
-        }
-        const stream = client.events(req)
+            // Creating a map object
+            let map
 
-        setInterval(() => {
-            stream.next().then((e) => {
-                const string = new TextDecoder().decode(e.value.payload);
-                const event = JSON.parse(string);
-                switch (event.value.name){
-                    case "GNSS_EVENT":
-                        changeMapCenter(event.data.latitude, event.data.longitude)
-                        break;
-                    case "STOP_DETECTED_EVENT":
-                        break;
-                    case "STOP_END_EVENT":
-                        break;
-                    case "DECELERATION_DETECTED_EVENT":
-                        break
-                    case "DECELERATION_EVENT":
-                        break;
-                    case "ACCELERATION_DETECTED_EVENT":
-                        break;
-                    case "ACCELERATION_EVENT":
-                        break;
-                    case "RIGHT_TURN_DETECTED_EVENT":
-                        break;
-                    case "RIGHT_TURN_EVENT":
-                        break;
-                    case "LEFT_TURN_DETECTED_EVENT":
-                        break;
-                    case "LEFT_TURN_EVENT":
-                        break;
-                }
-                console.log("Event:", event);
-            });
-        }, 0);
+            function loadMap() {
+                map = new L.map('map', mapOptions);
+                // Creating a Layer object
+                const layer = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
 
-        console.log("Ca va?");
+                // Adding layer to the map
+                map.addLayer(layer);
+                map.center = [17.385044, 78.486671];
+            }
 
+            function changeMapCenter(lat, lon) {
+                map.setView([lat, lon], zoom);
+            }
+        </script>
 
-        // Creating map options
-        var zoom = 20;
-        const mapOptions = {
-            center: [17.385044, 78.486671],
-            zoom: zoom
-        }
+    </head>
+    <body class="sl-theme-dark" onload="loadMap();">
+        <div class="sl-theme-dark container-div">
+            <div class="left-div">
+                <div style="padding:5px;">
+                    LEFT
+                </div>
+                <div class="arrows-container-div">
+                    <div class="center-flex-div">
+                        <div class="up-arrow-div">
+                            <sl-icon name="arrow-up" id="acceleration" class="arrow"></sl-icon>
+                        </div>
+                    </div>
+                    <div class="center-flex-div">
+                        <sl-icon name="arrow-left" id="left-turn" class="arrow" style="padding-right: 75px"></sl-icon>
+                        <sl-icon name="arrow-right" id="right-turn" class="arrow"></sl-icon>
+                    </div>
+                    <div class="center-flex-div">
+                        <sl-icon name="arrow-down" id="deceleration" class="arrow"></sl-icon>
 
-        // Creating a map object
-        let map
-
-        function loadMap() {
-            map = new L.map('map', mapOptions);
-            // Creating a Layer object
-            const layer = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-
-            // Adding layer to the map
-            map.addLayer(layer);
-            map.center = [17.385044, 78.486671];
-        }
-
-        function changeMapCenter(lat, lon) {
-            map.setView([lat, lon], zoom);
-        }
-    </script>
-
-</head>
-<body class="sl-theme-dark" onload="loadMap();">
-
-<div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
-    <div style="width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
-        <div style="display: flex; padding:5px;">LEFT</div>
-    </div>
-    <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
-        <div style="display: flex; padding:5px;">RIGHT</div>
-        <div id="map" style="width:1500px; height:1000px;"></div>
-
-    </div>
-</div>
-</body>
+                    </div>
+                    <div class="center-flex-div">
+                        <sl-icon name="sign-stop" id="stop-sign" class="stop-sign"></sl-icon>
+                    </div>
+                </div>
+            </div>
+            <div class="right-div">
+                <div style="display: flex; padding:5px;">RIGHT</div>
+                <div id="map" class="map-size"></div>
+            </div>
+        </div>
+    </body>
 </html>
 

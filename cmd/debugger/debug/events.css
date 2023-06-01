@@ -1,0 +1,51 @@
+.container-div {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+}
+
+.left-div {
+    width: 25%;
+    background: var(--sl-color-neutral-100);
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+
+.right-div {
+    background: var(--sl-color-neutral-50);
+    display: flex;
+    padding: 5px;
+    flex: 1;
+}
+
+.map-size {
+    width:1500px; /* change back to 1500 */
+    height:1000px; /* change back to 1000 */
+}
+
+.arrow {
+    width: 50px;
+    height: 75px;
+}
+
+.arrows-container-div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.up-arrow-div {
+    justify-content: center;
+}
+
+.stop-sign {
+    padding-top: 10px;
+    width: 100px;
+    height: 100px;
+}
+
+.center-flex-div {
+    display: flex;
+    justify-content: center
+}
