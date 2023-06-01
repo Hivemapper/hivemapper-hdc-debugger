@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-dark" style="color: var(--sl-color-neutral-700)">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview</title>
+    <style>
+        h2 {
+            margin: 0;
+        }
+
+        .kv {
+            display: flex;
+            padding-right: 5px;
+            padding-left: 5px;
+        }
+
+        .value {
+            text-align: right;
+        }
+
+        label {
+            padding-right: 5px;
+            flex: 1;
+        }
+
+        .cam-setting {
+        }
+
+        .cam-setting > div {
+            flex: 1;
+            padding: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+    <link rel = "stylesheet" href = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+
+    <script src = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
+
+    <script>
+        // Creating map options
+        var zoom = 20;
+        const mapOptions = {
+            center: [17.385044, 78.486671],
+            zoom: zoom
+        }
+
+        // Creating a map object
+        let map
+
+        function loadMap() {
+            map = new L.map('map', mapOptions);
+            // Creating a Layer object
+            const layer = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+            // Adding layer to the map
+            map.addLayer(layer);
+            map.center = [17.385044, 78.486671];
+        }
+
+        function changeMapCenter(lat, lon) {
+
+            map.setView([lat, lon], zoom);
+        }
+    </script>
+
+</head>
+<body class="sl-theme-dark" onload="loadMap(); changeMapCenter(45.57332776711953, -73.43767562176046)">
+
+<div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
+    <div style="width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
+        <div style="display: flex; padding:5px;">LEFT</div>
+    </div>
+    <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
+        <div style="display: flex; padding:5px;">RIGHT</div>
+        <div id ="map" style = "width:1500px; height:1000px;"></div>
+
+    </div>
+</div>
+</body>
+</html>
+

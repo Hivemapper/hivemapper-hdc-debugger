@@ -12,9 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
-
 	"github.com/dustin/go-humanize"
+	"github.com/fsnotify/fsnotify"
 	"github.com/mackerelio/go-osstat/cpu"
 	"github.com/mackerelio/go-osstat/memory"
 )

@@ -37,7 +37,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	listenAddr := mustGetString(cmd, "listen-addr")
 
 	if os.Getenv("DEBUG") == "true" {
-		http.Handle("/debug/", http.StripPrefix("/debug/", http.FileServer(http.Dir("./cmd/preview/www/"))))
+		http.Handle("/debug/", http.StripPrefix("/debug/", http.FileServer(http.Dir("./cmd/debugger/debug/"))))
 	} else {
 		http.Handle("/debug/", http.FileServer(http.FS(content)))
 	}
