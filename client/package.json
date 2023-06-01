@@ -4,7 +4,7 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --outfile=dist/out.js",
+    "build": "esbuild src/index.ts --bundle --outfile=dist/out.js --format=esm",
     "buf:generate": "npx buf generate ../../hivemapper-data-logger/proto/sf/events/v1/events.proto "
   },
   "devDependencies": {

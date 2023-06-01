@@ -7,9 +7,9 @@ import {
 import { EventService } from '../gen/proto/sf/events/v1/events_connect'
 
 // Make the Event Service client
-export const client = createPromiseClient(
+const client = createPromiseClient(
     EventService,
     createConnectTransport({
-        baseUrl: 'http://localhost:9000',
+        baseUrl: 'http://192.168.0.10:9000',
     })
 )
