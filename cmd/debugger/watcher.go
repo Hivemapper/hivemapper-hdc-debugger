@@ -53,7 +53,7 @@ func watchRunE(cmd *cobra.Command, args []string) error {
 	http.HandleFunc("/top", api.Top)
 	http.HandleFunc("/gps", api.GPS)
 
-	fmt.Printf("Starting jpeg preview on %s\n", listenAddr)
+	fmt.Printf("Starting watcher on %s\n", listenAddr)
 	if err := http.ListenAndServe(listenAddr, nil); err != nil {
 		return fmt.Errorf("ListenAndServe: %w\n", err)
 	}
