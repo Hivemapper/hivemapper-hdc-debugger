@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --outfile=dist/out.js --format=cjs",
-    "buf:generate": "npx buf generate buf.build/bufbuild/eliza"
+    "buf:generate": "npx buf generate ../../hivemapper-data-logger/proto/sf/events/v1/events.proto "
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.20.0-1",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@bufbuild/connect": "^0.9.1",
     "@bufbuild/connect-web": "^0.9.1",
-    "@bufbuild/protobuf": "^1.2.1"
+    "@bufbuild/protobuf": "^1.2.1",
+    "esbuild": "^0.17.19"
   }
 }

@@ -10,7 +10,10 @@ import { proto3 } from "@bufbuild/protobuf";
  */
 export const EventsRequest = proto3.makeMessageType(
   "sf.events.v1.EventsRequest",
-  [],
+  () => [
+    { no: 1, name: "includes", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "excludes", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ],
 );
 
 /**

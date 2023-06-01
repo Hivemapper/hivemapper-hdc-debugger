@@ -32,23 +32,52 @@
         }
     </style>
     <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
-    <link rel = "stylesheet" href = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
 
-    <script src = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script src="/debug/out.js"></script>
     <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
-    <script type="module" src="/debug/out.js">
-        console.log("salut");
+    <!--    <script type="module">-->
+    <!--        console.log("out.js loaded");-->
+    <!--        import {createPromiseClient, createConnectTransport} from "/debug/out.js";-->
+    <!--        var client = createPromiseClient(-->
+    <!--            EventService,-->
+    <!--            createConnectTransport({-->
+    <!--                baseUrl: "http://localhost:9000"-->
+    <!--            })-->
+    <!--        );-->
+    <!--    </script>-->
+
+    <script>
+        console.log("Salut");
+
         var client = createPromiseClient(
             EventService,
             createConnectTransport({
-                baseUrl: "http://localhost:9000"
+                baseUrl: "http://192.168.0.10:9000"
             })
         );
-        let res = client.Event({});
-        console.log(res);
-    </script>
 
-    <script>
+        console.log("Client:", client);
+
+        const req = {
+            includes: [],
+            excludes: ["Imu"]
+        }
+        const stream = client.events(req)
+
+        setInterval(() => {
+            stream.next().then((e) => {
+                const string = new TextDecoder().decode(e.value.payload);
+                const event = JSON.parse(string);
+                console.log("Event:", event);
+                changeMapCenter(event.data.latitude, event.data.longitude)
+            });
+        }, 0);
+
+        console.log("Ca va?");
+
+
         // Creating map options
         var zoom = 20;
         const mapOptions = {
@@ -75,7 +104,7 @@
     </script>
 
 </head>
-<body class="sl-theme-dark" onload="loadMap(); changeMapCenter(45.57332776711953, -73.43767562176046)">
+<body class="sl-theme-dark" onload="loadMap();">
 
 <div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
     <div style="width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
@@ -83,7 +112,7 @@
     </div>
     <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
         <div style="display: flex; padding:5px;">RIGHT</div>
-        <div id ="map" style = "width:1500px; height:1000px;"></div>
+        <div id="map" style="width:1500px; height:1000px;"></div>
 
     </div>
 </div>
