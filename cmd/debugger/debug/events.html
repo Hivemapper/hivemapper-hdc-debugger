@@ -70,8 +70,32 @@
             stream.next().then((e) => {
                 const string = new TextDecoder().decode(e.value.payload);
                 const event = JSON.parse(string);
+                switch (event.value.name){
+                    case "GNSS_EVENT":
+                        changeMapCenter(event.data.latitude, event.data.longitude)
+                        break;
+                    case "STOP_DETECTED_EVENT":
+                        break;
+                    case "STOP_END_EVENT":
+                        break;
+                    case "DECELERATION_DETECTED_EVENT":
+                        break
+                    case "DECELERATION_EVENT":
+                        break;
+                    case "ACCELERATION_DETECTED_EVENT":
+                        break;
+                    case "ACCELERATION_EVENT":
+                        break;
+                    case "RIGHT_TURN_DETECTED_EVENT":
+                        break;
+                    case "RIGHT_TURN_EVENT":
+                        break;
+                    case "LEFT_TURN_DETECTED_EVENT":
+                        break;
+                    case "LEFT_TURN_EVENT":
+                        break;
+                }
                 console.log("Event:", event);
-                changeMapCenter(event.data.latitude, event.data.longitude)
             });
         }, 0);
 
