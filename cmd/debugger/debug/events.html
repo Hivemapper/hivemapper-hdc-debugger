@@ -36,6 +36,17 @@
 
     <script src = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
     <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
+    <script type="module" src="/debug/out.js">
+        console.log("salut");
+        var client = createPromiseClient(
+            EventService,
+            createConnectTransport({
+                baseUrl: "http://localhost:9000"
+            })
+        );
+        let res = client.Event({});
+        console.log(res);
+    </script>
 
     <script>
         // Creating map options
@@ -59,7 +70,6 @@
         }
 
         function changeMapCenter(lat, lon) {
-
             map.setView([lat, lon], zoom);
         }
     </script>

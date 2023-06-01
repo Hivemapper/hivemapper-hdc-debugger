@@ -1,1 +1,1 @@
-# hivemapper-jpeg-preview
+# hivemapper-hdc-debugger

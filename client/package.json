@@ -1,0 +1,22 @@
+{
+  "name": "event-client",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=dist/out.js",
+    "buf:generate": "npx buf generate buf.build/bufbuild/eliza"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.20.0-1",
+    "@bufbuild/protoc-gen-connect-es": "^0.9.1",
+    "@bufbuild/protoc-gen-es": "^1.2.1",
+    "webpack": "^5.85.0",
+    "webpack-cli": "^5.1.1"
+  },
+  "dependencies": {
+    "@bufbuild/connect": "^0.9.1",
+    "@bufbuild/connect-web": "^0.9.1",
+    "@bufbuild/protobuf": "^1.2.1"
+  }
+}
