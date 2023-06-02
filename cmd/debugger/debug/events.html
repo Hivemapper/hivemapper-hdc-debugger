@@ -117,14 +117,14 @@
                         }).addTo(map);
 
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.color = backgroundColor;
+                        document.getElementById("right-turn").style.backgroundColor = backgroundColor;
                         addEventListItem('Right Turn')
 
                         break;
 
                     case "RIGHT_TURN_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.color = backgroundColor;
+                        document.getElementById("right-turn").style.backgroundColor = "";
                         break;
 
                     case "LEFT_TURN_DETECTED_EVENT":
