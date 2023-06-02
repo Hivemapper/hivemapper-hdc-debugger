@@ -47,6 +47,8 @@
         let lastLat = 0;
         let lastLon = 0;
 
+        let backgroundColor = "#32612D"
+
         setInterval(() => {
             stream.next().then((e) => {
                 const string = new TextDecoder().decode(e.value.payload);
@@ -57,10 +59,12 @@
                         lastLon = event.data.longitude;
                         changeMapCenter(lastLat, lastLon)
                         break;
+
                     case "STOP_DETECTED_EVENT":
                         console.log("Event:", event);
                         document.getElementById("stop-sign").style.color = "red";
                         break;
+
                     case "STOP_END_EVENT":
                         console.log("Event:", event);
                         document.getElementById("stop-sign").style.color = "#B6B6BE";
@@ -70,22 +74,41 @@
                             })
                         }).addTo(map);
                         break;
+
                     case "DECELERATION_DETECTED_EVENT":
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-bar-down.svg',
+                            })
+                        }).addTo(map);
+
                         console.log("Event:", event);
-                        document.getElementById("deceleration").style.color = "#3CB043";
+                        document.getElementById("acceleration").style.backgroundColor = backgroundColor;
+                        addEventListItem('Decelerating')
                         break
+
                     case "DECELERATION_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("deceleration").style.color = "#B6B6BE";
+                        document.getElementById("acceleration").style.backgroundColor = "";
                         break;
+
                     case "ACCELERATION_DETECTED_EVENT":
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-bar-up.svg',
+                            })
+                        }).addTo(map);
+
                         console.log("Event:", event);
-                        document.getElementById("acceleration").style.color = "#3CB043";
+                        document.getElementById("acceleration").style.backgroundColor = backgroundColor;
+                        addEventListItem('Accelerating')
                         break;
+
                     case "ACCELERATION_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("acceleration").style.color = "#B6B6BE";
+                        document.getElementById("acceleration").style.backgroundColor = "";
                         break;
+
                     case "RIGHT_TURN_DETECTED_EVENT":
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
@@ -94,19 +117,34 @@
                         }).addTo(map);
 
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.color = "#3CB043";
+                        document.getElementById("right-turn").style.color = backgroundColor;
+                        addEventListItem('Right Turn')
+
                         break;
+
                     case "RIGHT_TURN_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.color = "#B6B6BE";
+                        document.getElementById("right-turn").style.color = backgroundColor;
                         break;
+
                     case "LEFT_TURN_DETECTED_EVENT":
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-90deg-left.svg',
+                            })
+                        }).addTo(map);
+
+
                         console.log("Event:", event);
-                        document.getElementById("left-turn").style.color = "#3CB043";
+                        document.getElementById("acceleration").style.backgroundColor = backgroundColor;
+                        // document.getElementById("acceleration").style.borderRadius = "5px";
+                        addEventListItem('Left Turn')
+
                         break;
+
                     case "LEFT_TURN_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("left-turn").style.color = "#B6B6BE";
+                        document.getElementById("acceleration").style.backgroundColor = "";
                         break;
                 }
             });
@@ -117,10 +155,10 @@
         const mapOptions = {
             center: [17.385044, 78.486671],
             zoom: zoom
-        }
+        };
 
         // Creating a map object
-        let map
+        let map;
 
         function loadMap() {
             map = new L.map('map', mapOptions);
@@ -135,33 +173,51 @@
         function changeMapCenter(lat, lon) {
             map.setView([lat, lon], zoom);
         }
+
+        function addEventListItem(text) {
+            let eventsList = document.getElementById("events-list");
+            let li = document.createElement('sl-menu-item');
+            let elem = text + " lon: " + lastLon.toFixed(2) + " lat: " + lastLat.toFixed(2)
+            li.innerHTML = li.innerHTML + elem
+            eventsList.prepend(li)
+        }
     </script>
 
 </head>
 <body class="sl-theme-dark" onload="loadMap();">
-<div class="sl-theme-dark container-div">
-    <div class="left-div">
-        <div class="arrows-container-div">
-            <div class="center-flex-div">
-                <div class="up-arrow-div">
-                    <sl-icon name="arrow-up-square" id="acceleration" class="arrow"></sl-icon>
+    <div class="container-div">
+        <div class="left-div">
+            <div class="arrows-container-div">
+                <div class="center-flex-div">
+                    <div class="up-arrow-div">
+                        <sl-icon name="arrow-up-square" id="acceleration" class="arrow"></sl-icon>
+                    </div>
+                </div>
+                <div class="center-flex-div">
+                    <div class="center-flex-div center-arrow-div">
+                        <sl-icon name="arrow-left-square" id="left-turn" class="arrow turn-arrow-padding"></sl-icon>
+                    </div>
+                    <div>
+                        <sl-icon name="sign-stop" id="stop-sign" class="stop-sign" ></sl-icon>
+                    </div>
+                    <div class="center-flex-div center-arrow-div">
+                        <sl-icon name="arrow-right-square" id="right-turn" class="arrow turn-arrow-padding"></sl-icon>
+                    </div>
+
+                </div>
+                <div class="center-flex-div">
+                    <sl-icon name="arrow-down-square" id="deceleration" class="arrow"></sl-icon>
+                </div>
+                <div class="center-flex-div events-list-div">
+                    <sl-menu id="events-list" style="max-width: 350px;">
+                    </sl-menu>
                 </div>
             </div>
-            <div class="center-flex-div">
-                <sl-icon name="arrow-left-square" id="left-turn" class="arrow" ></sl-icon>
-                    <sl-icon name="sign-stop" id="stop-sign" class="stop-sign" ></sl-icon>
-                <sl-icon name="arrow-right-square" id="right-turn" class="arrow"></sl-icon>
-            </div>
-            <div class="center-flex-div">
-                <sl-icon name="arrow-down-square" id="deceleration" class="arrow"></sl-icon>
-
-            </div>
+        </div>
+        <div class="right-div">
+            <div id="map" class="map-size"></div>
         </div>
     </div>
-    <div class="right-div">
-        <div id="map" class="map-size"></div>
-    </div>
-</div>
 </body>
 </html>
 

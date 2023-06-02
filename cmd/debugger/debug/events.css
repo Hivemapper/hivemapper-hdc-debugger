@@ -1,7 +1,11 @@
+body {
+    height: 100%;
+}
+
 .container-div {
     display: flex;
-    flex: 1;
     flex-direction: row;
+    height: 100%;
 }
 
 .left-div {
@@ -20,13 +24,17 @@
 }
 
 .map-size {
-    width:100%; /* change back to 1500 */
-    height:600px; /* change back to 1000 */
+    width: 100%;
+    height: 600px;
 }
 
 .arrow {
     width: 70px;
     height: 70px;
+}
+
+.turn-arrow-padding {
+    padding: 10px;
 }
 
 .arrows-container-div {
@@ -36,6 +44,7 @@
 }
 
 .up-arrow-div {
+    padding-top: 10px;
     justify-content: center;
 }
 
@@ -45,7 +54,18 @@
     height: 100px;
 }
 
+.center-arrow-div {
+    align-content: center;
+    flex-wrap: wrap
+}
+
 .center-flex-div {
     display: flex;
-    justify-content: center
+    justify-content: center;
+}
+
+.events-list-div {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-top: 20px;
 }
