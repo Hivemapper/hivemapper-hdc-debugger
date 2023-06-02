@@ -9,7 +9,7 @@ body {
 }
 
 .left-div {
-    width: 25%;
+    width: 35%;
     background: var(--sl-color-neutral-100);
     display: flex;
     flex-direction: column;
@@ -56,7 +56,7 @@ body {
 
 .center-arrow-div {
     align-content: center;
-    flex-wrap: wrap
+    flex-wrap: wrap;
 }
 
 .center-flex-div {
@@ -68,4 +68,13 @@ body {
     max-height: 400px;
     overflow-y: auto;
     padding-top: 20px;
+}
+
+.events-menu {
+    width: 95%;
+    max-width: 600px;
+}
+
+.events-item {
+    max-width: 600px;
 }

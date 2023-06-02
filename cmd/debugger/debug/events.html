@@ -44,104 +44,180 @@
         }
         const stream = client.events(req)
 
+        let maxLengthEventsList = 7;
+
         let lastLat = 0;
         let lastLon = 0;
+        let lastXAvg = 0;
+        let lastYAvg = 0;
+        let lastZAvg = 0;
+        let lastSpeed = 0;
+        let lastDuration = 0;
 
         let backgroundColor = "#32612D"
         let borderRadius = "10px";
+
+        // Events for the events list
+        const Events = {
+            Acceleration: "Accelerating",
+            AccelerationEnd: "Acceleration End",
+            Deceleration: "Decelerating",
+            DecelerationEnd: "Deceleration End",
+            Stop: "Stop",
+            StopEnd: "Stop End",
+            RightTurn: "Right Turn",
+            RightTurnEnd: "Right Turn End",
+            LeftTurn: "Left Turn",
+            LeftTurnEnd: "Left Turn End",
+        };
+
+        let millis = Date.now();
 
         setInterval(() => {
             stream.next().then((e) => {
                 const string = new TextDecoder().decode(e.value.payload);
                 const event = JSON.parse(string);
+
+                if (event.g_force_position != null) {
+                    lastXAvg = event.g_force_position.x_avg;
+                    lastYAvg = event.g_force_position.y_avg;
+                    lastZAvg = event.g_force_position.z_avg;
+                }
+
                 switch (event.name) {
                     case "GNSS_EVENT":
                         lastLat = event.data.latitude;
                         lastLon = event.data.longitude;
                         changeMapCenter(lastLat, lastLon)
+
+                        if (Math.floor(Date.now() - millis) / 1000 > 3) { // show dot point on map every 3 seconds
+                            L.marker([lastLat, lastLon], {
+                                icon: L.icon({
+                                    iconUrl: '/debug/shoelace/assets/icons/dot.svg',
+                                })
+                            }).addTo(map);
+                            millis = Date.now();
+                        }
                         break;
 
                     case "STOP_DETECTED_EVENT":
                         console.log("Event:", event);
+
                         document.getElementById("stop-sign").style.color = "red";
+                        addEventListItem(Events.Stop)
                         break;
 
                     case "STOP_END_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("stop-sign").style.color = "#B6B6BE";
+
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
                                 iconUrl: '/debug/shoelace/assets/icons/sign-stop.svg',
                             })
                         }).addTo(map);
+                        lastDuration = event.duration;
+                        document.getElementById("stop-sign").style.color = "#B6B6BE";
+                        addEventListItem(Events.StopEnd)
                         break;
 
                     case "DECELERATION_DETECTED_EVENT":
+                        console.log("Event:", event);
+
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
                                 iconUrl: '/debug/shoelace/assets/icons/arrow-bar-down.svg',
                             })
                         }).addTo(map);
-
-                        console.log("Event:", event);
                         setBorderAndBackgroundColor("deceleration");
-                        addEventListItem('Decelerating')
+                        addEventListItem(Events.Deceleration)
                         break
 
                     case "DECELERATION_EVENT":
                         console.log("Event:", event);
+
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-down-circle.svg',
+                            })
+                        }).addTo(map);
+                        lastSpeed = event.speed;
+                        lastDuration = event.duration;
                         resetBorderAndBackgroundColor("deceleration");
+                        addEventListItem(Events.DecelerationEnd)
                         break;
 
                     case "ACCELERATION_DETECTED_EVENT":
+                        console.log("Event:", event);
+
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
                                 iconUrl: '/debug/shoelace/assets/icons/arrow-bar-up.svg',
                             })
                         }).addTo(map);
-
-                        console.log("Event:", event);
                         setBorderAndBackgroundColor("acceleration");
-                        addEventListItem('Accelerating')
+                        addEventListItem(Events.Acceleration)
                         break;
 
                     case "ACCELERATION_EVENT":
                         console.log("Event:", event);
+
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-up-circle.svg',
+                            })
+                        }).addTo(map);
+                        lastSpeed = event.speed;
+                        lastDuration = event.duration;
                         resetBorderAndBackgroundColor("acceleration")
+                        addEventListItem(Events.AccelerationEnd)
                         break;
 
                     case "RIGHT_TURN_DETECTED_EVENT":
+                        console.log("Event:", event);
+
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
-                                iconUrl: '/debug/shoelace/assets/icons/arrow-90deg-right.svg',
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-right-circle.svg',
                             })
                         }).addTo(map);
-
-                        console.log("Event:", event);
                         setBorderAndBackgroundColor("right-turn");
-                        addEventListItem('Right Turn')
+                        addEventListItem(Events.RightTurn)
                         break;
 
                     case "RIGHT_TURN_EVENT":
                         console.log("Event:", event);
+
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-right-circle.svg',
+                            })
+                        }).addTo(map);
                         resetBorderAndBackgroundColor("right-turn");
+                        addEventListItem(Events.RightTurnEnd)
                         break;
 
                     case "LEFT_TURN_DETECTED_EVENT":
+                        console.log("Event:", event);
+
                         L.marker([lastLat, lastLon], {
                             icon: L.icon({
-                                iconUrl: '/debug/shoelace/assets/icons/arrow-90deg-left.svg',
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-left.svg',
                             })
                         }).addTo(map);
-
-                        console.log("Event:", event);
                         setBorderAndBackgroundColor("left-turn");
-                        addEventListItem('Left Turn');
+                        addEventListItem(Events.LeftTurn);
                         break;
 
                     case "LEFT_TURN_EVENT":
                         console.log("Event:", event);
+
+                        L.marker([lastLat, lastLon], {
+                            icon: L.icon({
+                                iconUrl: '/debug/shoelace/assets/icons/arrow-left-circle.svg',
+                            })
+                        }).addTo(map);
                         resetBorderAndBackgroundColor("left-turn");
+                        addEventListItem(Events.LeftTurnEnd)
                         break;
                 }
             });
@@ -171,17 +247,32 @@
             map.setView([lat, lon], zoom);
         }
 
-        function addEventListItem(text) {
+        function addEventListItem(event) {
             let eventsList = document.getElementById("events-list");
             let li = document.createElement('sl-menu-item');
-            let elem = text + " lon: " + lastLon.toFixed(2) + " lat: " + lastLat.toFixed(2)
-            li.innerHTML = li.innerHTML + elem
-            eventsList.prepend(li)
 
-            if (eventsList.children.length > 5) {
-                eventsList.removeChild(eventsList.children.item(4));
+            let elem =
+                "[" + event.toString() + "]" +
+                " Long: " + lastLon.toFixed(2) +
+                " Lat: " + lastLat.toFixed(2)
+
+            switch (event) {
+                case Events.AccelerationEnd:
+                case Events.DecelerationEnd:
+                    elem += " Speed: " + lastSpeed.toFixed(2) + " km/h "+ " Duration: " + (lastDuration / 1000000000).toFixed(2) + "s";
+                    break;
+                case Events.StopEnd:
+                    elem += " Duration: " + (lastDuration / 1000000000).toFixed(2) + "s";
             }
-            console.log('len', );
+
+            elem += " X: " + lastXAvg.toFixed(2) + " Y: " + lastYAvg.toFixed(2) + " Z: " + lastZAvg.toFixed(2);
+            li.innerHTML = li.innerHTML + elem;
+            li.className = "events-item";
+            eventsList.prepend(li);
+
+            if (eventsList.children.length > maxLengthEventsList) {
+                eventsList.removeChild(eventsList.children.item(maxLengthEventsList - 1));
+            }
         }
 
         function setBorderAndBackgroundColor(elementId) {
@@ -215,13 +306,12 @@
                     <div class="center-flex-div center-arrow-div">
                         <sl-icon name="arrow-right-square" id="right-turn" class="arrow turn-arrow-margin"></sl-icon>
                     </div>
-
                 </div>
                 <div class="center-flex-div">
                     <sl-icon name="arrow-down-square" id="deceleration" class="arrow"></sl-icon>
                 </div>
                 <div class="center-flex-div events-list-div">
-                    <sl-menu id="events-list" style="max-width: 350px;"></sl-menu>
+                    <sl-menu id="events-list" class="events-menu"></sl-menu>
                 </div>
             </div>
         </div>
