@@ -20,13 +20,13 @@
 }
 
 .map-size {
-    width:1500px; /* change back to 1500 */
-    height:1000px; /* change back to 1000 */
+    width:100%; /* change back to 1500 */
+    height:600px; /* change back to 1000 */
 }
 
 .arrow {
-    width: 50px;
-    height: 75px;
+    width: 70px;
+    height: 70px;
 }
 
 .arrows-container-div {
@@ -40,7 +40,7 @@
 }
 
 .stop-sign {
-    padding-top: 10px;
+    padding: 10px;
     width: 100px;
     height: 100px;
 }
