@@ -48,6 +48,7 @@
         let lastLon = 0;
 
         let backgroundColor = "#32612D"
+        let borderRadius = "10px";
 
         setInterval(() => {
             stream.next().then((e) => {
@@ -83,13 +84,13 @@
                         }).addTo(map);
 
                         console.log("Event:", event);
-                        document.getElementById("deceleration").style.backgroundColor = backgroundColor;
+                        setBorderAndBackgroundColor("deceleration");
                         addEventListItem('Decelerating')
                         break
 
                     case "DECELERATION_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("deceleration").style.backgroundColor = "";
+                        resetBorderAndBackgroundColor("deceleration");
                         break;
 
                     case "ACCELERATION_DETECTED_EVENT":
@@ -100,13 +101,13 @@
                         }).addTo(map);
 
                         console.log("Event:", event);
-                        document.getElementById("acceleration").style.backgroundColor = backgroundColor;
+                        setBorderAndBackgroundColor("acceleration");
                         addEventListItem('Accelerating')
                         break;
 
                     case "ACCELERATION_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("acceleration").style.backgroundColor = "";
+                        resetBorderAndBackgroundColor("acceleration")
                         break;
 
                     case "RIGHT_TURN_DETECTED_EVENT":
@@ -117,14 +118,13 @@
                         }).addTo(map);
 
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.backgroundColor = backgroundColor;
+                        setBorderAndBackgroundColor("right-turn");
                         addEventListItem('Right Turn')
-
                         break;
 
                     case "RIGHT_TURN_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("right-turn").style.backgroundColor = "";
+                        resetBorderAndBackgroundColor("right-turn");
                         break;
 
                     case "LEFT_TURN_DETECTED_EVENT":
@@ -134,17 +134,14 @@
                             })
                         }).addTo(map);
 
-
                         console.log("Event:", event);
-                        document.getElementById("left-turn").style.backgroundColor = backgroundColor;
-                        // document.getElementById("acceleration").style.borderRadius = "5px";
-                        addEventListItem('Left Turn')
-
+                        setBorderAndBackgroundColor("left-turn");
+                        addEventListItem('Left Turn');
                         break;
 
                     case "LEFT_TURN_EVENT":
                         console.log("Event:", event);
-                        document.getElementById("left-turn").style.backgroundColor = "";
+                        resetBorderAndBackgroundColor("left-turn");
                         break;
                 }
             });
@@ -180,6 +177,21 @@
             let elem = text + " lon: " + lastLon.toFixed(2) + " lat: " + lastLat.toFixed(2)
             li.innerHTML = li.innerHTML + elem
             eventsList.prepend(li)
+
+            if (eventsList.children.length > 5) {
+                eventsList.removeChild(eventsList.children.item(4));
+            }
+            console.log('len', );
+        }
+
+        function setBorderAndBackgroundColor(elementId) {
+            document.getElementById(elementId).style.backgroundColor = backgroundColor;
+            document.getElementById(elementId).style.borderRadius = borderRadius;
+        }
+
+        function resetBorderAndBackgroundColor(elementId) {
+            document.getElementById(elementId).style.backgroundColor = "";
+            document.getElementById(elementId).style.borderRadius = "";
         }
     </script>
 
@@ -195,13 +207,13 @@
                 </div>
                 <div class="center-flex-div">
                     <div class="center-flex-div center-arrow-div">
-                        <sl-icon name="arrow-left-square" id="left-turn" class="arrow turn-arrow-padding"></sl-icon>
+                        <sl-icon name="arrow-left-square" id="left-turn" class="arrow turn-arrow-margin"></sl-icon>
                     </div>
                     <div>
                         <sl-icon name="sign-stop" id="stop-sign" class="stop-sign" ></sl-icon>
                     </div>
                     <div class="center-flex-div center-arrow-div">
-                        <sl-icon name="arrow-right-square" id="right-turn" class="arrow turn-arrow-padding"></sl-icon>
+                        <sl-icon name="arrow-right-square" id="right-turn" class="arrow turn-arrow-margin"></sl-icon>
                     </div>
 
                 </div>
@@ -209,8 +221,7 @@
                     <sl-icon name="arrow-down-square" id="deceleration" class="arrow"></sl-icon>
                 </div>
                 <div class="center-flex-div events-list-div">
-                    <sl-menu id="events-list" style="max-width: 350px;">
-                    </sl-menu>
+                    <sl-menu id="events-list" style="max-width: 350px;"></sl-menu>
                 </div>
             </div>
         </div>

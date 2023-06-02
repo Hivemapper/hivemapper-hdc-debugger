@@ -33,8 +33,8 @@ body {
     height: 70px;
 }
 
-.turn-arrow-padding {
-    padding: 10px;
+.turn-arrow-margin {
+    margin: 10px;
 }
 
 .arrows-container-div {
