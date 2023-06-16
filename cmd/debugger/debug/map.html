@@ -107,7 +107,7 @@
                                 c = "gray";
                                 radius = 1;
                             }
-                            const marker =L.circleMarker(latlng, {
+                            const marker = L.circleMarker(latlng, {
                                 radius: radius,
                                 fillColor: c,
                                 color: c,
@@ -128,7 +128,6 @@
                 .catch((error) => {
                     console.error('Error:', error);
                 })
-
 
             function changeMapCenter(lat, lon) {
                 console.log("changeMapCenter:", lat, lon);

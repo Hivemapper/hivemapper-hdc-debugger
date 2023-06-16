@@ -30,6 +30,6 @@ This will bundle all the `protoc-gen-es` and `protoc-gen-connect` code. Then we 
 
 ## Run the debugger
 ```bash
-go run ./cmd/debugger watch ./tmp ./tmp ./tmp # Add DEBUG=true if you want debug logs 
+go run ./cmd/debugger watch ./tmp ./tmp ./tmp # Add DEBUG=true if you want hot refresh for the files 
 ```
 
