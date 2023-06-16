@@ -27,3 +27,9 @@ cp dist/out.js ../cmd/debugger/debug
 ```
 
 This will bundle all the `protoc-gen-es` and `protoc-gen-connect` code. Then we copy the `out.js` file to `./project_root/cmd/debugger/debug` to have the file ready for the events.html page. 
+
+## Run the debugger
+```bash
+go run ./cmd/debugger watch ./tmp ./tmp ./tmp # Add DEBUG=true if you want debug logs 
+```
+
