@@ -45,18 +45,53 @@
 
             // Creating a Layer object
             const layer = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+            const mqi = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.png", {subdomains: ['otile1','otile2','otile3','otile4']});
+            const google = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {subdomains: ['mt1','mt2','mt3']});
             // Adding layer to the map
-            map.addLayer(layer);
+            // map.addLayer(layer);
+            // map.addLayer(mqi);
+            map.addLayer(google);
             map.center = [17.385044, 78.486671];
             centered = false;
+            const colors = new Map();
+            colors.set("STOP_DETECTED_EVENT", 'red');
+            colors.set("DECELERATION_DETECTED_EVENT", 'yellow');
+            colors.set("ACCELERATION_DETECTED_EVENT", 'green');
+            colors.set("RIGHT_TURN_DETECTED_EVENT", 'blue');
+            colors.set("LEFT_TURN_DETECTED_EVENT", 'purple');
 
-            fetch('/debug/geo.json', {cache: "reload"})
+            // fetch('/debug/corrected.json', {cache: "reload"})
+            //     .then((response) => response.json())
+            //     .then((data) => {
+            //         console.log("Got geojson data:", data);
+            //         L.geoJSON(data, {
+            //             style(feature) {
+            //                 return {color: "blue"};
+            //             },
+            //             pointToLayer(feature, latlng) {
+            //                 console.log("feature:", feature, latlng)
+            //                 return L.circleMarker(latlng, {
+            //                     radius: 1,
+            //                     fillColor: 'pink',
+            //                     color: 'pink',
+            //                     stroke: false,
+            //                     weight: 1,
+            //                     opacity: 1,
+            //                     fillOpacity: 1
+            //                 });
+            //             }
+            //         }).addTo(map);
+            //     })
+            //     .catch((error) => {
+            //         console.error('Error:', error);
+            //     })
+
+            fetch('/debug/locations.json', {cache: "reload"})
                 .then((response) => response.json())
                 .then((data) => {
                     console.log("Got geojson data:", data);
                     L.geoJSON(data, {
                         style(feature) {
-                            console.log("feature:", feature)
                             return {color: "blue"};
                         },
                         pointToLayer(feature, latlng) {
@@ -65,35 +100,28 @@
                                 changeMapCenter(latlng.lat, latlng.lng);
                                 centered = true;
                             }
-                            lat = latlng.lat;
-                            lon = latlng.lng;
-                            const icons = new Map();
-                            icons.set("STOP_END_EVENT", '/debug/shoelace/assets/icons/sign-stop.svg');
-                            icons.set("DECELERATION_DETECTED_EVENT", '/debug/shoelace/assets/icons/arrow-bar-down.svg');
-                            icons.set("DECELERATION_EVENT", '/debug/shoelace/assets/icons/arrow-down-circle.svg');
-                            icons.set("ACCELERATION_DETECTED_EVENT", '/debug/shoelace/assets/icons/arrow-bar-up.svg');
-                            icons.set("ACCELERATION_EVENT", '/debug/shoelace/assets/icons/arrow-up-circle.svg');
-                            icons.set("RIGHT_TURN_DETECTED_EVENT", '/debug/shoelace/assets/icons/arrow-right-circle.svg');
-                            icons.set("RIGHT_TURN_EVENT", '/debug/shoelace/assets/icons/arrow-right-circle.svg');
-                            icons.set("LEFT_TURN_DETECTED_EVENT", '/debug/shoelace/assets/icons/arrow-left.svg');
-                            icons.set("LEFT_TURN_EVENT", '/debug/shoelace/assets/icons/arrow-left-circle.svg');
-                            let i = icons.get(feature.properties.event);
-                            if (i){
-                                return L.marker([lat, lon], {
-                                    icon: L.icon({
-                                        iconUrl: i,
-                                    })
-                                })
-                            }
 
-                            // return L.circleMarker(latlng, {
-                            //     radius: 8,
-                            //     fillColor: '#ff7800',
-                            //     color: '#000',
-                            //     weight: 1,
-                            //     opacity: 1,
-                            //     fillOpacity: 0.8
-                            // });
+                            let c = colors.get(feature.properties.event);
+                            let radius = 4;
+                            if (c === undefined) {
+                                c = "gray";
+                                radius = 1;
+                            }
+                            const marker =L.circleMarker(latlng, {
+                                radius: radius,
+                                fillColor: c,
+                                color: c,
+                                stroke: false,
+                                weight: 1,
+                                opacity: 1,
+                                fillOpacity: 1
+                            });
+
+                            marker.bindPopup("DOP h:" + feature.properties.dop.hdop +" eph: " + feature.properties.eph +"<br/>" +
+                                "HorizontalAccuracy:" + feature.properties.horizontalAccuracy + "<br/>" +
+                                "Satellites used:" + feature.properties.satellites.used + " seen:" + feature.properties.satellites.seen + "<br/>"
+                            ).openPopup();
+                            return marker
                         }
                     }).addTo(map);
                 })
