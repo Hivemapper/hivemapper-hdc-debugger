@@ -45,46 +45,39 @@
 
             // Creating a Layer object
             const layer = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-            const mqi = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.png", {subdomains: ['otile1','otile2','otile3','otile4']});
-            const google = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {subdomains: ['mt1','mt2','mt3']});
+            // const mqi = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.png", {subdomains: ['otile1','otile2','otile3','otile4']});
+            // const google = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {subdomains: ['mt1','mt2','mt3']});
             // Adding layer to the map
-            // map.addLayer(layer);
+            map.addLayer(layer);
             // map.addLayer(mqi);
-            map.addLayer(google);
+            // map.addLayer(google);
             map.center = [17.385044, 78.486671];
             centered = false;
             const colors = new Map();
             colors.set("STOP_DETECTED_EVENT", 'red');
             colors.set("DECELERATION_DETECTED_EVENT", 'yellow');
-            colors.set("ACCELERATION_DETECTED_EVENT", 'green');
+            // colors.set("ACCELERATION_DETECTED_EVENT", 'green');
             colors.set("RIGHT_TURN_DETECTED_EVENT", 'blue');
             colors.set("LEFT_TURN_DETECTED_EVENT", 'purple');
 
-            // fetch('/debug/corrected.json', {cache: "reload"})
-            //     .then((response) => response.json())
-            //     .then((data) => {
-            //         console.log("Got geojson data:", data);
-            //         L.geoJSON(data, {
-            //             style(feature) {
-            //                 return {color: "blue"};
-            //             },
-            //             pointToLayer(feature, latlng) {
-            //                 console.log("feature:", feature, latlng)
-            //                 return L.circleMarker(latlng, {
-            //                     radius: 1,
-            //                     fillColor: 'pink',
-            //                     color: 'pink',
-            //                     stroke: false,
-            //                     weight: 1,
-            //                     opacity: 1,
-            //                     fillOpacity: 1
-            //                 });
-            //             }
-            //         }).addTo(map);
-            //     })
-            //     .catch((error) => {
-            //         console.error('Error:', error);
-            //     })
+
+            const points = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-73.4382193, 45.574189800000006]}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-73.4391432, 45.5744076]}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-73.43943510000001, 45.5745458]}}]}
+            L.geoJSON(points, {
+                pointToLayer(feature, latlng) {
+
+                    const marker =L.circleMarker(latlng, {
+                        radius: 1,
+                        fillColor: "red",
+                        color: "red",
+                        stroke: false,
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 1
+                    });
+
+                    return marker
+                }
+            }).addTo(map);
 
             fetch('/debug/locations.json', {cache: "reload"})
                 .then((response) => response.json())
@@ -102,9 +95,9 @@
                             }
 
                             let c = colors.get(feature.properties.event);
-                            let radius = 4;
+                            let radius = 3;
                             if (c === undefined) {
-                                c = "gray";
+                                c = "white";
                                 radius = 1;
                             }
                             const marker = L.circleMarker(latlng, {
@@ -117,9 +110,13 @@
                                 fillOpacity: 1
                             });
 
-                            marker.bindPopup("DOP h:" + feature.properties.dop.hdop +" eph: " + feature.properties.eph +"<br/>" +
+                            marker.bindPopup("DOP h:" + feature.properties.dop.hdop  + "<br/>"
+                                + " eph: " + feature.properties.eph + "<br/>" +
                                 "HorizontalAccuracy:" + feature.properties.horizontalAccuracy + "<br/>" +
-                                "Satellites used:" + feature.properties.satellites.used + " seen:" + feature.properties.satellites.seen + "<br/>"
+                                "Satellites used:" + feature.properties.satellites.used + " seen:" + feature.properties.satellites.seen + "<br/>" +
+                                "lat:" + latlng.lat + ", lon:" + latlng.lng + "<br/>" +
+                                 latlng.lng + ", " + latlng.lat
+
                             ).openPopup();
                             return marker
                         }
@@ -128,6 +125,31 @@
                 .catch((error) => {
                     console.error('Error:', error);
                 })
+
+            // fetch('/debug/corrected.json', {cache: "reload"})
+            //     .then((response) => response.json())
+            //     .then((data) => {
+            //         console.log("Got geojson data:", data);
+            //         L.geoJSON(data, {
+            //             pointToLayer(feature, latlng) {
+            //                 console.log("feature:", feature, latlng)
+            //                 return L.circleMarker(latlng, {
+            //                     radius: 1,
+            //                     fillColor: 'orange',
+            //                     color: 'orange',
+            //                     stroke: false,
+            //                     weight: 1,
+            //                     opacity: 1,
+            //                     fillOpacity: 1
+            //                 });
+            //             }
+            //         }).addTo(map);
+            //     })
+            //     .catch((error) => {
+            //         console.error('Error:', error);
+            //     })
+
+
 
             function changeMapCenter(lat, lon) {
                 console.log("changeMapCenter:", lat, lon);
