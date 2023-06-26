@@ -230,18 +230,40 @@
             <div style="height: 100%; width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
                 <h2 style="padding-left: 5px">Camera placement info</h2>
                 <div style="display: flex; padding:5px; flex-direction: column;">
-                    <p style="font-size: 14px;">
-                        GPS data is fetched every 100ms. Data displayed below is the average hdop, satellites seen
-                        and used every 1 second. There is a correlation with the hdop value and the number of satellites
-                        used. The more satellites used, the lower the hdop value will be. The graph will display data at every 5 seconds.
-                    </p>
+                    <button id="camera-placement-info" style="width: 50%">More info</button>
+                    <br />
+                    <div id="camera-placement-info-modal" class="modal">
+                        <div class="modal-content">
+                            <span class="close" id="camera-placement-info-close">&times;</span>
+                            <p style="font-size: 14px;">
+                                GPS data is fetched every 100ms. Data displayed in the camera placement info section is the average hdop, satellites seen
+                                and used every 1 second. There is a correlation with the hdop value and the number of satellites
+                                used. The more satellites used, the lower the hdop value will be.
+                                <br />
+                                <br />
+                                The graph will display data every 5 seconds.
+                            </p>
+                        </div>
+                    </div>
+                    <script>
+                        let cameraPlacementInfoButton = document.getElementById("camera-placement-info");
+                        let cameraPlacementInfoModal = document.getElementById("camera-placement-info-modal");
+                        let cameraPlacementInfoSpan = document.getElementById("camera-placement-info-close");
+                        cameraPlacementInfoButton.onclick = function() {
+                            cameraPlacementInfoModal.style.display = "block";
+                        }
+                        cameraPlacementInfoSpan.onclick = function() {
+                            cameraPlacementInfoModal.style.display = "none";
+                        }
+                    </script>
+
                     <div style="flex: 2">
                         <label>Horizontal Precision (hdop)</label>
                         <button id="more-info-hdop">More info</button>
                         <br />
                         <div id="more-info-hdop-modal" class="modal">
                             <div class="modal-content">
-                                <span class="close">&times;</span>
+                                <span class="close" id="more-info-hdop-close">&times;</span>
                                 <p style="font-size: 12px;">The smaller the DOP number, the better the gps strength. As a rule of thumb:</p>
                                 <ul style="font-size: 12px;">
                                     <li>1-2: excellent</li>
@@ -251,19 +273,14 @@
                             </div>
                         </div>
                         <script>
-                            let modal = document.getElementById("more-info-hdop-modal");
-                            let btn = document.getElementById("more-info-hdop");
-                            let span = document.getElementsByClassName("close")[0];
-                            btn.onclick = function() {
-                                modal.style.display = "block";
+                            let moreInfoButton = document.getElementById("more-info-hdop");
+                            let moreInfoModal = document.getElementById("more-info-hdop-modal");
+                            let moreInfoSpan = document.getElementById("more-info-hdop-close");
+                            moreInfoButton.onclick = function() {
+                                moreInfoModal.style.display = "block";
                             }
-                            span.onclick = function() {
-                                modal.style.display = "none";
-                            }
-                            window.onclick = function(event) {
-                                if (event.target === modal) {
-                                    modal.style.display = "none";
-                                }
+                            moreInfoSpan.onclick = function() {
+                                moreInfoModal.style.display = "none";
                             }
                         </script>
 
@@ -283,5 +300,15 @@
             </div>
         </div>
     </body>
+<script>
+    window.onclick = function(event) {
+        if (event.target === moreInfoModal) {
+            moreInfoModal.style.display = "none";
+        }
+        if (event.target === cameraPlacementInfoModal) {
+            cameraPlacementInfoModal.style.display = "none";
+        }
+    }
+</script>
 </html>
 
