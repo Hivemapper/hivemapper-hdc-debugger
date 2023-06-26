@@ -28,21 +28,20 @@
 
         console.log("Base URL:", baseURL);
 
-        var client = createPromiseClient(
+        const grpcClient = createPromiseClient(
             EventService,
             createConnectTransport({
                 baseUrl: baseURL
-
             })
         );
 
-        console.log("Client:", client);
+        console.log("Client:", grpcClient);
 
         const req = {
             includes: [],
-            excludes: ["IMU_RAW_ACCELERATION_EVENT"]
+            excludes: []
         }
-        const stream = client.events(req)
+        const stream = grpcClient.events(req)
 
         let maxLengthEventsList = 7;
 

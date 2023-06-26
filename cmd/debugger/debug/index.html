@@ -36,7 +36,100 @@
 
     <script src="./chart.js"></script>
     <script src="./exif-js"></script>
+    <script src="/debug/out.js"></script>
 </head>
+<script>
+    const baseURL = "http://192.168.0.10:9000"
+
+    const grpcClient = createPromiseClient(
+        EventService,
+        createConnectTransport({
+            baseUrl: baseURL
+        })
+    );
+
+    console.log("Client:", grpcClient);
+
+    const req = {
+        includes: ["GNSS_EVENT"],
+        excludes: []
+    }
+    const stream = grpcClient.events(req)
+
+    class Dop {
+        h;
+        satellites_seen;
+        satellites_used;
+
+        constructor(h, satellites_seen, satellites_used) {
+            this.h = h;
+            this.satellites_seen = satellites_seen;
+            this.satellites_used = satellites_used;
+        }
+    }
+
+    class DopWindow {
+        size = 0;
+        hVals = 0;
+        satellites_seen_vals = 0;
+        satellites_used_vals = 0;
+        elements = 0;
+
+        constructor(size) {
+            this.size = size;
+        }
+
+        add(dop) {
+            if (this.elements > this.size) {
+                this.reset();
+            }
+
+            this.elements++;
+            this.hVals += dop.h;
+            this.satellites_seen_vals += dop.satellites_seen;
+            this.satellites_used_vals += dop.satellites_used;
+        }
+
+        getAverage() {
+            return new Dop(
+                this.hVals/this.size,
+                this.satellites_seen_vals/this.size,
+                this.satellites_used_vals/this.size
+            );
+        }
+
+        reset() {
+            this.elements = 0;
+            this.hVals = 0;
+            this.satellites_seen_vals = 0;
+            this.satellites_used_vals = 0;
+        }
+    }
+
+    // gnss data every 100 ms so we want to keep evey 10 elements
+    let dopWindow = new DopWindow(10);
+
+    setInterval(() => {
+        stream.next().then((e) => {
+            const string = new TextDecoder().decode(e.value.payload);
+            const event = JSON.parse(string);
+
+            const h = event.gnss_data.dop.hdop;
+            const sat = event.gnss_data.satellites.seen;
+            const sat_used = event.gnss_data.satellites.used;
+
+            dopWindow.add(new Dop(h, sat, sat_used))
+            if (dopWindow.elements === dopWindow.size) {
+                let avg = dopWindow.getAverage();
+                document.getElementById("info-hdop").innerHTML = avg.h + "";
+                document.getElementById("info-satellites-seen").innerHTML = avg.satellites_seen + "";
+                document.getElementById("info-satellites-used").innerHTML = avg.satellites_used + "";
+            }
+        })
+    }, 0)
+
+</script>
+
 <script>
     let currentImage = "";
     dashcameServer = ""
@@ -187,7 +280,7 @@
 </script>
 <body onload="refreshData()" class="sl-theme-dark">
 <script>
-    const intervalId = window.setInterval(function () {
+    window.setInterval(function () {
         refreshData()
     }, 2000);
 </script>
@@ -200,13 +293,13 @@
         </div>
 
         <sl-divider></sl-divider>
-        <h2>GPS Health</h2>
+        <h2 style="padding-left: 5px">GPS Health</h2>
         <div style="display: flex; padding: 5px;">
             <canvas id="myChart"></canvas>
         </div>
 
         <sl-divider></sl-divider>
-        <h2>Frames</h2>
+        <h2 style="padding-left: 5px">Frames</h2>
         <div style="display: flex; padding:5px">
             <div style="flex: 2">
                 <label>Rate:</label>
@@ -223,11 +316,11 @@
         </div>
 
         <sl-divider></sl-divider>
-        <h2>Top</h2>
+        <h2 style="padding-left: 5px">Top</h2>
         <div style="display: flex; flex-direction: row">
             <div style="display: flex; flex: 1;">
                 <div style="display: flex; flex: 1; flex-direction: column; ">
-                    <h3>CPU</h3>
+                    <h3 style="padding-left: 5px">CPU</h3>
                     <div style="display:flex; flex: 1; flex-direction: column">
                         <div class="kv">
                             <label>Used:</label>
@@ -251,7 +344,7 @@
             <sl-divider vertical style="width: 10px; height: 150px"></sl-divider>
             <div style="display: flex; flex: 1;">
                 <div style="display: flex; flex: 1; flex-direction: column;">
-                    <h3>Memory</h3>
+                    <h3 style="padding-left: 5px">Memory</h3>
                     <div>
                         <div class="kv">
                             <label>Total:</label>
@@ -281,7 +374,35 @@
                 </div>
             </div>
         </div>
+        <sl-divider></sl-divider>
+        <h2 style="padding-left: 5px">Camera placement info</h2>
+        <div style="display: flex; padding:5px; flex-direction: column;">
+            <p style="font-size: 14px;">GPS data is fetched every 100ms. Data displayed below is the average hdop, satellites seen and used every 1 second. There is a correlation with the hdop value and the number of satellites used. The more satellites used, the lower the hdop value will be.</p>
+            <div style="flex: 2">
+                <label>Horizontal Precision (hdop)</label>
+                <p style="font-size: 12px;">The smaller the DOP number, the better the gps strength. As a rule of thumb:</p>
+                <ul style="font-size: 12px;">
+                    <li>1-2: excellent</li>
+                    <li>2-5: good</li>
+                    <li>5+: bad</li>
+                </ul>
+                <span class="value" id="info-hdop">--</span>
+            </div>
+            <br />
+            <div style="flex: 2">
+                <label>Satellites seen:</label>
+                <p style="font-size: 12px;">Number of satellites the camera is able to see</p>
+                <span class="value" id="info-satellites-seen">--</span>
+            </div>
+            <br />
+            <div style="flex: 2">
+                <label>Satellites used:</label>
+                <p style="font-size: 12px;">Number of satellites the camera is using to determine the gps accuracy</p>
+                <span class="value" id="info-satellites-used">--</span>
+            </div>
+        </div>
     </div>
+
     <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
         <div style="display: flex; flex-direction: column; flex: 1">
             <div slot="start" style="display: flex; flex-direction: column; width: 100%;">
