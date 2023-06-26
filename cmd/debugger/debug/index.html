@@ -1,497 +1,378 @@
 <!DOCTYPE html>
 <html lang="en" class="sl-theme-dark" style="color: var(--sl-color-neutral-700)">
-<head>
-    <meta charset="UTF-8">
-    <title>Preview</title>
-    <style>
-        h2 {
-            margin: 0;
-        }
-
-        .kv {
-            display: flex;
-            padding-right: 5px;
-            padding-left: 5px;
-        }
-
-        .value {
-            text-align: right;
-        }
-
-        label {
-            padding-right: 5px;
-            flex: 1;
-        }
-
-        .cam-setting {
-        }
-
-        .cam-setting > div {
-            flex: 1;
-            padding: 5px;
-        }
-    </style>
-    <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
-    <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
-
-    <script src="./chart.js"></script>
-    <script src="./exif-js"></script>
-    <script src="/debug/out.js"></script>
-</head>
-<script>
-    const baseURL = "http://192.168.0.10:9000"
-
-    const grpcClient = createPromiseClient(
-        EventService,
-        createConnectTransport({
-            baseUrl: baseURL
-        })
-    );
-
-    console.log("Client:", grpcClient);
-
-    const req = {
-        includes: ["GNSS_EVENT"],
-        excludes: []
-    }
-    const stream = grpcClient.events(req)
-
-    class Dop {
-        h;
-        satellites_seen;
-        satellites_used;
-
-        constructor(h, satellites_seen, satellites_used) {
-            this.h = h;
-            this.satellites_seen = satellites_seen;
-            this.satellites_used = satellites_used;
-        }
-    }
-
-    class DopWindow {
-        size = 0;
-        hVals = 0;
-        satellites_seen_vals = 0;
-        satellites_used_vals = 0;
-        elements = 0;
-
-        constructor(size) {
-            this.size = size;
-        }
-
-        add(dop) {
-            if (this.elements > this.size) {
-                this.reset();
+    <head>
+        <meta charset="UTF-8">
+        <title>Preview</title>
+        <style>
+            h2 {
+                margin: 0;
             }
 
-            this.elements++;
-            this.hVals += dop.h;
-            this.satellites_seen_vals += dop.satellites_seen;
-            this.satellites_used_vals += dop.satellites_used;
-        }
-
-        getAverage() {
-            return new Dop(
-                this.hVals/this.size,
-                this.satellites_seen_vals/this.size,
-                this.satellites_used_vals/this.size
-            );
-        }
-
-        reset() {
-            this.elements = 0;
-            this.hVals = 0;
-            this.satellites_seen_vals = 0;
-            this.satellites_used_vals = 0;
-        }
-    }
-
-    // gnss data every 100 ms so we want to keep evey 10 elements
-    let dopWindow = new DopWindow(10);
-
-    setInterval(() => {
-        stream.next().then((e) => {
-            const string = new TextDecoder().decode(e.value.payload);
-            const event = JSON.parse(string);
-
-            const h = event.gnss_data.dop.hdop;
-            const sat = event.gnss_data.satellites.seen;
-            const sat_used = event.gnss_data.satellites.used;
-
-            dopWindow.add(new Dop(h, sat, sat_used))
-            if (dopWindow.elements === dopWindow.size) {
-                let avg = dopWindow.getAverage();
-                document.getElementById("info-hdop").innerHTML = avg.h + "";
-                document.getElementById("info-satellites-seen").innerHTML = avg.satellites_seen + "";
-                document.getElementById("info-satellites-used").innerHTML = avg.satellites_used + "";
+            .kv {
+                display: flex;
+                padding-right: 5px;
+                padding-left: 5px;
             }
-        })
-    }, 0)
 
-</script>
+            .value {
+                text-align: right;
+            }
 
-<script>
-    let currentImage = "";
-    dashcameServer = ""
+            label {
+                padding-right: 5px;
+                flex: 1;
+            }
 
-    let ctx
-    let chart
+            .cam-setting {
+            }
 
-    Chart.defaults.backgroundColor = '#9BD0F5';
-    Chart.defaults.borderColor = 'rgb(102, 37, 0)';
-    Chart.defaults.color = 'white';
+            .cam-setting > div {
+                flex: 1;
+                padding: 5px;
+            }
+        </style>
+        <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+        <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
 
-    function refreshData() {
-        if (!ctx) {
-            ctx = document.getElementById('myChart');
-            chart = new Chart(ctx, {
-                type: 'line',
-                color: 'red',
-                data: {
-                    datasets: [
-                        {
-                            label: 'hdop',
-                            borderWidth: 1,
-                        },
-                        {
-                            label: 'pdop',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'sat_used',
-                            borderWidth: 1
-                        }]
-                },
-                options: {
-                    scales: {
-                        x: {},
-                        y: {
-                            beginAtZero: true
+        <script src="./chart.js"></script>
+        <script src="./exif-js"></script>
+    </head>
+
+    <script>
+        let currentImage = "";
+        dashcameServer = ""
+
+        let ctx;
+        let chart;
+
+        Chart.defaults.backgroundColor = '#9BD0F5';
+        Chart.defaults.borderColor = 'rgb(102, 37, 0)';
+        Chart.defaults.color = 'white';
+
+        function refreshData() {
+            if (!ctx) {
+                ctx = document.getElementById('myChart');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    color: 'red',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'hdop',
+                                borderWidth: 1,
+                            },
+                            {
+                                label: 'pdop',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'sat_used',
+                                borderWidth: 1
+                            }]
+                    },
+                    options: {
+                        scales: {
+                            x: {},
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
+                });
+            }
+
+            fetch(`${dashcameServer}/lastframe`)
+                .then((response) => response.json())
+                .then(function (data) {
+                    currentImage = data.Filename;
+                    document.getElementById("image-path").innerHTML = currentImage;
+                    document.getElementById("image-size").innerHTML = Math.trunc(data.Size / 1024) + "KB";
+                    document.getElementById("my-image").src = "/framejpg/" + currentImage;
+                }).catch(function (e) {
+                // console.log(e)
+            });
+            fetch(`${dashcameServer}/top`)
+                .then((response) => response.json())
+                .then(function (data) {
+                    const mem = data.Memory
+                    const cpu = data.CPU
+                    const frame = data.FrameStats
+                    document.getElementById("memory_total").innerHTML = mem.Total;
+                    document.getElementById("memory_used").innerHTML = mem.Used;
+                    document.getElementById("memory_free").innerHTML = mem.Free;
+                    document.getElementById("memory_active").innerHTML = mem.Active;
+                    document.getElementById("memory_cache").innerHTML = mem.Cached;
+                    document.getElementById("memory_swap").innerHTML = mem.SwapTotal;
+
+                    // document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
+                    document.getElementById("cpu_used").innerHTML = (cpu.Total - cpu.Idle).toFixed(0) + " %";
+                    document.getElementById("cpu_user").innerHTML = cpu.User.toFixed(0) + " %";
+                    document.getElementById("cpu_system").innerHTML = cpu.System.toFixed(0) + " %";
+                    document.getElementById("cpu_idle").innerHTML = cpu.Idle.toFixed(0) + " %";
+
+                    document.getElementById("frame_rate").innerHTML = frame.Framerate;
+                    document.getElementById("frame_average_size").innerHTML = Math.trunc(frame.FrameAverageSize / 1024) + "KB";
+                    document.getElementById("frame_total").innerHTML = frame.FrameTotalCount;
+
+                }).catch(function (e) {
+                console.log(e)
+            });
+
+            fetch(`${dashcameServer}/gps`)
+                .then((response) => response.json())
+                .then(function (rawData) {
+                    const labels = [];
+                    rawData.gdop.forEach(function (item, index) {
+                        const d = new Date(item.Ts);
+                        labels.push(d.toLocaleTimeString('en-CA', {hour12: false}));
+                    });
+                    chart.data.datasets.forEach((dataset, index) => {
+                        const data = ToData(dataset.label, rawData);
+                        chart.data.datasets[index].data = data;
+                    });
+                    chart.data.labels = labels;
+                    chart.update();
+                }).catch(function (e) {
+                console.log(e)
             });
         }
 
-        fetch(`${dashcameServer}/lastframe`)
-            .then((response) => response.json())
-            .then(function (data) {
-                currentImage = data.Filename;
-                document.getElementById("image-path").innerHTML = currentImage;
-                document.getElementById("image-size").innerHTML = Math.trunc(data.Size / 1024) + "KB";
-                document.getElementById("my-image").src = "/framejpg/" + currentImage;
+        function ToData(label, rawData) {
+            const selectedData = rawData[label];
+            const selectedDataValues = [];
+            selectedData.forEach(function (item, index) {
+                selectedDataValues.push(item.Value);
+            });
+
+            return selectedDataValues;
+        }
+
+        function copyImage() {
+            fetch(`${dashcameServer}/copy/${currentImage}`).then(async (response) => {
+                if (response.ok) {
+                } else {
+                    alert("Error grabbing image:" + response.status + " " + await response.text());
+                }
             }).catch(function (e) {
-            // console.log(e)
-        });
-        fetch(`${dashcameServer}/top`)
-            .then((response) => response.json())
-            .then(function (data) {
-                const mem = data.Memory
-                const cpu = data.CPU
-                const frame = data.FrameStats
-                document.getElementById("memory_total").innerHTML = mem.Total;
-                document.getElementById("memory_used").innerHTML = mem.Used;
-                document.getElementById("memory_free").innerHTML = mem.Free;
-                document.getElementById("memory_active").innerHTML = mem.Active;
-                document.getElementById("memory_cache").innerHTML = mem.Cached;
-                document.getElementById("memory_swap").innerHTML = mem.SwapTotal;
+                alert(e);
+            });
+        }
 
-                // document.getElementById("cpu_total").innerHTML = cpu.Total.toFixed(0) + " %";
-                document.getElementById("cpu_used").innerHTML = (cpu.Total - cpu.Idle).toFixed(0) + " %";
-                document.getElementById("cpu_user").innerHTML = cpu.User.toFixed(0) + " %";
-                document.getElementById("cpu_system").innerHTML = cpu.System.toFixed(0) + " %";
-                document.getElementById("cpu_idle").innerHTML = cpu.Idle.toFixed(0) + " %";
-
-                document.getElementById("frame_rate").innerHTML = frame.Framerate;
-                document.getElementById("frame_average_size").innerHTML = Math.trunc(frame.FrameAverageSize / 1024) + "KB";
-                document.getElementById("frame_total").innerHTML = frame.FrameTotalCount;
-
-            }).catch(function (e) {
-            console.log(e)
-        });
-
-        fetch(`${dashcameServer}/gps`)
-            .then((response) => response.json())
-            .then(function (rawData) {
-                const labels = [];
-                rawData.gdop.forEach(function (item, index) {
-                    const d = new Date(item.Ts);
-                    labels.push(d.toLocaleTimeString('en-CA', {hour12: false}));
-                });
-                chart.data.datasets.forEach((dataset, index) => {
-                    const data = ToData(dataset.label, rawData);
-                    chart.data.datasets[index].data = data;
-                });
-                chart.data.labels = labels;
-                chart.update();
-            }).catch(function (e) {
-            console.log(e)
-        });
-    }
-
-    function ToData(label, rawData) {
-        const selectedData = rawData[label];
-        const selectedDataValues = [];
-        selectedData.forEach(function (item, index) {
-            selectedDataValues.push(item.Value);
-        });
-
-        return selectedDataValues;
-    }
-
-    function copyImage() {
-        fetch(`${dashcameServer}/copy/${currentImage}`).then(async (response) => {
-            if (response.ok) {
-            } else {
-                alert("Error grabbing image:" + response.status + " " + await response.text());
+        function applyCameraConfig() {
+            const camConfigItems = document.getElementsByClassName("cam-config");
+            const config = {};
+            for (let item of camConfigItems) {
+                console.log(item.id, item.value);
+                config[item.id] = item.value;
             }
-        }).catch(function (e) {
-            alert(e);
-        });
-    }
 
-    function applyCameraConfig() {
-        const camConfigItems = document.getElementsByClassName("cam-config");
-        const config = {};
-        for (let item of camConfigItems) {
-            console.log(item.id, item.value);
-            config[item.id] = item.value;
+            let opts = {
+                method: 'POST',
+                body: JSON.stringify(config),
+            }
+            fetch(`${dashcameServer}/camera/restart`, opts).catch(function (e) {
+                alert(e);
+            });
         }
 
-        let opts = {
-            method: 'POST',
-            body: JSON.stringify(config),
+        function startWatch() {
+            fetch(`${dashcameServer}/start_watching`).catch(function (e) {
+                alert(e);
+            });
         }
-        fetch(`${dashcameServer}/camera/restart`, opts).catch(function (e) {
-            alert(e);
-        });
-    }
+        function stopCamera() {
+            fetch(`${dashcameServer}/camera/stop`).catch(function (e) {
+                alert(e);
+            });
+        }
+    </script>
+    <body onload="refreshData()" class="sl-theme-dark">
+        <script>
+            window.setInterval(function () {
+                refreshData()
+            }, 2000);
+        </script>
 
-    function startWatch() {
-        fetch(`${dashcameServer}/start_watching`).catch(function (e) {
-            alert(e);
-        });
-    }
-    function stopCamera() {
-        fetch(`${dashcameServer}/camera/stop`).catch(function (e) {
-            alert(e);
-        });
-    }
-</script>
-<body onload="refreshData()" class="sl-theme-dark">
-<script>
-    window.setInterval(function () {
-        refreshData()
-    }, 2000);
-</script>
+        <div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
+            <div style="height: 100%; width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
+                <div style="display: flex; padding:5px;">
+                    <h3 id="image-path" style="flex: 1">Image name here</h3>
+                    <h4 id="image-size">Size here</h4>
+                </div>
 
-<div class="sl-theme-dark" style="display: flex; flex: 1; flex-direction: row;">
-    <div style="height: 100%; width: 25%; background: var(--sl-color-neutral-100); display: flex; flex-direction: column">
-        <div style="display: flex; padding:5px;">
-            <h3 id="image-path" style="flex: 1">Image name here</h3>
-            <h4 id="image-size">Size here</h4>
-        </div>
+                <sl-divider></sl-divider>
+                <h2 style="padding-left: 5px">GPS Health</h2>
+                <div style="display: flex; padding: 5px;">
+                    <canvas id="myChart"></canvas>
+                </div>
 
-        <sl-divider></sl-divider>
-        <h2 style="padding-left: 5px">GPS Health</h2>
-        <div style="display: flex; padding: 5px;">
-            <canvas id="myChart"></canvas>
-        </div>
+                <sl-divider></sl-divider>
+                <h2 style="padding-left: 5px">Frames</h2>
+                <div style="display: flex; padding:5px">
+                    <div style="flex: 2">
+                        <label>Rate:</label>
+                        <span class="value" id="frame_rate">--</span>
+                    </div>
+                    <div style="flex: 2">
+                        <label>Average size:</label>
+                        <span class="value" id="frame_average_size">--</span>
+                    </div>
+                    <div style="flex: 2">
+                        <label>Total count:</label>
+                        <span class="value" id="frame_total">--</span>
+                    </div>
+                </div>
 
-        <sl-divider></sl-divider>
-        <h2 style="padding-left: 5px">Frames</h2>
-        <div style="display: flex; padding:5px">
-            <div style="flex: 2">
-                <label>Rate:</label>
-                <span class="value" id="frame_rate">--</span>
-            </div>
-            <div style="flex: 2">
-                <label>Average size:</label>
-                <span class="value" id="frame_average_size">--</span>
-            </div>
-            <div style="flex: 2">
-                <label>Total count:</label>
-                <span class="value" id="frame_total">--</span>
-            </div>
-        </div>
-
-        <sl-divider></sl-divider>
-        <h2 style="padding-left: 5px">Top</h2>
-        <div style="display: flex; flex-direction: row">
-            <div style="display: flex; flex: 1;">
-                <div style="display: flex; flex: 1; flex-direction: column; ">
-                    <h3 style="padding-left: 5px">CPU</h3>
-                    <div style="display:flex; flex: 1; flex-direction: column">
-                        <div class="kv">
-                            <label>Used:</label>
-                            <span class="value" id="cpu_used"></span>
+                <sl-divider></sl-divider>
+                <h2 style="padding-left: 5px">Top</h2>
+                <div style="display: flex; flex-direction: row">
+                    <div style="display: flex; flex: 1;">
+                        <div style="display: flex; flex: 1; flex-direction: column; ">
+                            <h3 style="padding-left: 5px">CPU</h3>
+                            <div style="display:flex; flex: 1; flex-direction: column">
+                                <div class="kv">
+                                    <label>Used:</label>
+                                    <span class="value" id="cpu_used"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>User:</label>
+                                    <span class="value" id="cpu_user"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>System:</label>
+                                    <span class="value" id="cpu_system"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>Idle:</label>
+                                    <span class="value" id="cpu_idle"></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="kv">
-                            <label>User:</label>
-                            <span class="value" id="cpu_user"></span>
-                        </div>
-                        <div class="kv">
-                            <label>System:</label>
-                            <span class="value" id="cpu_system"></span>
-                        </div>
-                        <div class="kv">
-                            <label>Idle:</label>
-                            <span class="value" id="cpu_idle"></span>
+                    </div>
+                    <sl-divider vertical style="width: 10px; height: 150px"></sl-divider>
+                    <div style="display: flex; flex: 1;">
+                        <div style="display: flex; flex: 1; flex-direction: column;">
+                            <h3 style="padding-left: 5px">Memory</h3>
+                            <div>
+                                <div class="kv">
+                                    <label>Total:</label>
+                                    <span class="value" id="memory_total"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>Used:</label>
+                                    <span class="value" id="memory_used"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>Free:</label>
+                                    <span class="value" id="memory_free"></span>
+                                </div>
+                                <div class="kv">
+                                    <label>Active:</label>
+                                    <span class="value" id="memory_active">--</span>
+                                </div>
+                                <div class="kv">
+                                    <label>Cache:</label>
+                                    <span class="value" id="memory_cache">--</span>
+                                </div>
+                                <div class="kv">
+                                    <label>Swap:</label>
+                                    <span class="value" id="memory_swap">--</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <sl-divider vertical style="width: 10px; height: 150px"></sl-divider>
-            <div style="display: flex; flex: 1;">
-                <div style="display: flex; flex: 1; flex-direction: column;">
-                    <h3 style="padding-left: 5px">Memory</h3>
-                    <div>
-                        <div class="kv">
-                            <label>Total:</label>
-                            <span class="value" id="memory_total"></span>
-                        </div>
-                        <div class="kv">
-                            <label>Used:</label>
-                            <span class="value" id="memory_used"></span>
-                        </div>
-                        <div class="kv">
-                            <label>Free:</label>
-                            <span class="value" id="memory_free"></span>
-                        </div>
-                        <div class="kv">
-                            <label>Active:</label>
-                            <span class="value" id="memory_active">--</span>
-                        </div>
-                        <div class="kv">
-                            <label>Cache:</label>
-                            <span class="value" id="memory_cache">--</span>
-                        </div>
-                        <div class="kv">
-                            <label>Swap:</label>
-                            <span class="value" id="memory_swap">--</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <sl-divider></sl-divider>
-        <h2 style="padding-left: 5px">Camera placement info</h2>
-        <div style="display: flex; padding:5px; flex-direction: column;">
-            <p style="font-size: 14px;">GPS data is fetched every 100ms. Data displayed below is the average hdop, satellites seen and used every 1 second. There is a correlation with the hdop value and the number of satellites used. The more satellites used, the lower the hdop value will be.</p>
-            <div style="flex: 2">
-                <label>Horizontal Precision (hdop)</label>
-                <p style="font-size: 12px;">The smaller the DOP number, the better the gps strength. As a rule of thumb:</p>
-                <ul style="font-size: 12px;">
-                    <li>1-2: excellent</li>
-                    <li>2-5: good</li>
-                    <li>5+: bad</li>
-                </ul>
-                <span class="value" id="info-hdop">--</span>
-            </div>
-            <br />
-            <div style="flex: 2">
-                <label>Satellites seen:</label>
-                <p style="font-size: 12px;">Number of satellites the camera is able to see</p>
-                <span class="value" id="info-satellites-seen">--</span>
-            </div>
-            <br />
-            <div style="flex: 2">
-                <label>Satellites used:</label>
-                <p style="font-size: 12px;">Number of satellites the camera is using to determine the gps accuracy</p>
-                <span class="value" id="info-satellites-used">--</span>
-            </div>
-        </div>
-    </div>
 
-    <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
-        <div style="display: flex; flex-direction: column; flex: 1">
-            <div slot="start" style="display: flex; flex-direction: column; width: 100%;">
-                <div class="cam-setting" style="display: flex; flex-direction: row;">
-                    <div>
-                        <div>Shutter:</div>
-                        <sl-input class="cam-config" id="shutter" value="0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Analog Gain</div>
-                        <sl-input class="cam-config" id="analoggain" value="0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Metering:</div>
-                        <sl-select class="cam-config" id="metering" value="centre">
-                            <sl-option value="centre">centre</sl-option>
-                            <sl-option value="spot">spot</sl-option>
-                            <sl-option value="average">average</sl-option>
-                            <sl-option value="custom">custom</sl-option>
-                        </sl-select>
-                    </div>
-                    <div>
-                        <div>Ev (exposure compensation):</div>
-                        <sl-input class="cam-config" id="ev" value="0"></sl-input>
-                    </div>
-                </div>
-                <div class="cam-setting" style="display: flex; flex-direction: row">
-                    <div>
-                        <div>AWB:</div>
-                        <sl-select class="cam-config" id="awb" value="auto">
-                            <sl-option value="auto">auto</sl-option>
-                            <sl-option value="incandescent">incandescent</sl-option>
-                            <sl-option value="tungsten">tungsten</sl-option>
-                            <sl-option value="fluorescent">fluorescent</sl-option>
-                            <sl-option value="indoor">indoor</sl-option>
-                            <sl-option value="daylight">daylight</sl-option>
-                            <sl-option value="cloudy">cloudy</sl-option>
-                            <sl-option value="custom">custom</sl-option>
-                        </sl-select>
-                    </div>
-                    <div>
-                        <div>Awb gains:</div>
-                        <sl-input class="cam-config" id="awbgains" value="0.0,0.0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Brightness (-1.0 to 1.0):</div>
-                        <sl-input class="cam-config" id="brightness" value="0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Contrast: 1.0 = normal</div>
-                        <sl-input class="cam-config" id="contrast" value="1.0"></sl-input>
-                    </div>
-                </div>
-                <div class="cam-setting" style="display: flex; flex-direction: row">
-                    <div>
-                        <div>Saturation: 1.0 = normal</div>
-                        <sl-input class="cam-config" id="saturation" value="1.0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Sharpness: 1.0 = normal</div>
-                        <sl-input class="cam-config" id="sharpness" value="1.0"></sl-input>
-                    </div>
-                    <div>
-                        <div>Denoise:</div>
-                        <sl-select class="cam-config" id="denoise" value="auto">
-                            <sl-option value="auto">auto</sl-option>
-                            <sl-option value="off">off</sl-option>
-                            <sl-option value="cdn_off">cdn_off</sl-option>
-                            <sl-option value="cdn_fast">cdn_fast</sl-option>
-                            <sl-option value="cdn_hq">cdn_hq</sl-option>
-                        </sl-select>
-                    </div>
-                    <div>
-                        <div>&nbsp;</div>
-                        <div>
-                            <sl-button onclick="startWatch()">Start Watching</sl-button>
-                            <sl-button onclick="stopCamera()">Stop</sl-button>
-                            <sl-button onclick="applyCameraConfig()">Restart</sl-button>
-                            <sl-button onclick="copyImage()">Grab</sl-button>
+            <div style="background: var(--sl-color-neutral-50); display: flex; padding: 5px; flex: 1">
+                <div style="display: flex; flex-direction: column; flex: 1">
+                    <div slot="start" style="display: flex; flex-direction: column; width: 100%;">
+                        <div class="cam-setting" style="display: flex; flex-direction: row;">
+                            <div>
+                                <div>Shutter:</div>
+                                <sl-input class="cam-config" id="shutter" value="0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Analog Gain</div>
+                                <sl-input class="cam-config" id="analoggain" value="0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Metering:</div>
+                                <sl-select class="cam-config" id="metering" value="centre">
+                                    <sl-option value="centre">centre</sl-option>
+                                    <sl-option value="spot">spot</sl-option>
+                                    <sl-option value="average">average</sl-option>
+                                    <sl-option value="custom">custom</sl-option>
+                                </sl-select>
+                            </div>
+                            <div>
+                                <div>Ev (exposure compensation):</div>
+                                <sl-input class="cam-config" id="ev" value="0"></sl-input>
+                            </div>
+                        </div>
+                        <div class="cam-setting" style="display: flex; flex-direction: row">
+                            <div>
+                                <div>AWB:</div>
+                                <sl-select class="cam-config" id="awb" value="auto">
+                                    <sl-option value="auto">auto</sl-option>
+                                    <sl-option value="incandescent">incandescent</sl-option>
+                                    <sl-option value="tungsten">tungsten</sl-option>
+                                    <sl-option value="fluorescent">fluorescent</sl-option>
+                                    <sl-option value="indoor">indoor</sl-option>
+                                    <sl-option value="daylight">daylight</sl-option>
+                                    <sl-option value="cloudy">cloudy</sl-option>
+                                    <sl-option value="custom">custom</sl-option>
+                                </sl-select>
+                            </div>
+                            <div>
+                                <div>Awb gains:</div>
+                                <sl-input class="cam-config" id="awbgains" value="0.0,0.0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Brightness (-1.0 to 1.0):</div>
+                                <sl-input class="cam-config" id="brightness" value="0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Contrast: 1.0 = normal</div>
+                                <sl-input class="cam-config" id="contrast" value="1.0"></sl-input>
+                            </div>
+                        </div>
+                        <div class="cam-setting" style="display: flex; flex-direction: row">
+                            <div>
+                                <div>Saturation: 1.0 = normal</div>
+                                <sl-input class="cam-config" id="saturation" value="1.0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Sharpness: 1.0 = normal</div>
+                                <sl-input class="cam-config" id="sharpness" value="1.0"></sl-input>
+                            </div>
+                            <div>
+                                <div>Denoise:</div>
+                                <sl-select class="cam-config" id="denoise" value="auto">
+                                    <sl-option value="auto">auto</sl-option>
+                                    <sl-option value="off">off</sl-option>
+                                    <sl-option value="cdn_off">cdn_off</sl-option>
+                                    <sl-option value="cdn_fast">cdn_fast</sl-option>
+                                    <sl-option value="cdn_hq">cdn_hq</sl-option>
+                                </sl-select>
+                            </div>
+                            <div>
+                                <div>&nbsp;</div>
+                                <div>
+                                    <sl-button onclick="startWatch()">Start Watching</sl-button>
+                                    <sl-button onclick="stopCamera()">Stop</sl-button>
+                                    <sl-button onclick="applyCameraConfig()">Restart</sl-button>
+                                    <sl-button onclick="copyImage()">Grab</sl-button>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div style="display: flex; flex: 1; padding: 5px">
+                        <img id="my-image" width="100%" alt="image" src=""/>
+                    </div>
                 </div>
             </div>
-            <div style="display: flex; flex: 1; padding: 5px">
-                <img id="my-image" width="100%" alt="image" src=""/>
-            </div>
         </div>
-    </div>
-</div>
-</body>
+    </body>
 </html>
 
