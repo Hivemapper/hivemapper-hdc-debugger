@@ -149,8 +149,8 @@
                     let avg = dopWindow.getAverage();
 
                     dopWindowsIndex++;
-                    if (dopWindowsIndex % 5 === 0) {
-                        // show data every 5 seconds
+                    if (dopWindowsIndex % 2 === 0) {
+                        // show data every 2 seconds
                         chart.data.datasets[0].data.push(avg.h);
                         chart.data.datasets[1].data.push(avg.satellites_seen);
                         chart.data.datasets[2].data.push(avg.satellites_used);
@@ -160,9 +160,10 @@
                         chart.update();
                     }
 
-                    document.getElementById("info-hdop").innerHTML = avg.h + "";
-                    document.getElementById("info-satellites-seen").innerHTML = avg.satellites_seen + "";
-                    document.getElementById("info-satellites-used").innerHTML = avg.satellites_used + "";
+                    document.getElementById("info-hdop").innerHTML = (avg.h + 0.0).toFixed(3) + "";
+                    document.getElementById("info-satellites-seen").innerHTML = Math.floor(avg.satellites_seen).toFixed(0) + "";
+                    document.getElementById("info-satellites-used").innerHTML = Math.floor(avg.satellites_used).toFixed(0) + "";
+                    document.getElementById("info-fix").innerHTML = event.gnss_data.fix;
                 }
             })
         }, 0);
@@ -241,7 +242,7 @@
                                 used. The more satellites used, the lower the hdop value will be.
                                 <br />
                                 <br />
-                                The graph will display data every 5 seconds.
+                                The graph will display data every 2 seconds.
                             </p>
                         </div>
                     </div>
@@ -295,6 +296,11 @@
                     <div style="flex: 2">
                         <label>Satellites used:</label>
                         <span class="value" id="info-satellites-used">--</span>
+                    </div>
+                    <br />
+                    <div style="flex: 2">
+                        <label>Fix:</label>
+                        <span class="value" id="info-fix">--</span>
                     </div>
                 </div>
             </div>
