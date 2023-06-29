@@ -3,58 +3,8 @@
     <head>
         <meta charset="UTF-8">
         <title>GPS</title>
-        <style>
-            h2 {
-                margin: 0;
-            }
-
-            .value {
-                text-align: right;
-            }
-
-            label {
-                padding-right: 5px;
-                flex: 1;
-            }
-            .modal {
-                display: none; /* Hidden by default */
-                position: fixed; /* Stay in place */
-                z-index: 1; /* Sit on top */
-                padding-top: 100px; /* Location of the box */
-                left: 0;
-                top: 0;
-                width: 100%; /* Full width */
-                height: 100%; /* Full height */
-                background-color: rgb(0,0,0); /* Fallback color */
-                background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
-            }
-
-            /* Modal Content */
-            .modal-content {
-                background-color: #ffffff;
-                color: #000000;
-                margin: auto;
-                padding: 20px;
-                border: 1px solid #888;
-                width: 40%;
-            }
-
-            /* The Close Button */
-            .close {
-                color: #000000;
-                float: right;
-                font-size: 28px;
-                font-weight: bold;
-            }
-
-            .close:hover,
-            .close:focus {
-                color: #000;
-                text-decoration: none;
-                cursor: pointer;
-            }
-        </style>
         <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+        <link rel="stylesheet" href="/debug/css/gps.css" />
         <script type="module" src="/debug/shoelace/shoelace-autoloader.js"></script>
 
         <script src="./chart.js"></script>
@@ -109,7 +59,7 @@
                 }
 
                 this.elements++;
-                this.hVals += dop.h;
+                 this.hVals += dop.h;
                 this.satellites_seen_vals += dop.satellites_seen;
                 this.satellites_used_vals += dop.satellites_used;
             }

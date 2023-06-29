@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-dark" style="color: var(--sl-color-neutral-700)">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="UTF-8">
+        <title>Download</title>
+        <link rel="stylesheet" href="/debug/shoelace/themes/dark.css"/>
+        <link rel="stylesheet" href="/debug/css/download.css">
+
+        <script>
+            function downloadFiles() {
+                document.getElementById("download-button").style.display = "none";
+                document.getElementById("loader-icon").style.display = "block";
+
+                fetch("http://192.168.0.10:9001/debug/download", {
+                        headers: {
+                            'Content-Type': 'application/x-gzip'
+                        }
+                    })
+                    .then(res => {
+                        console.log("Successfully downloaded database file");
+                        return res.blob();
+                    })
+                    .then(blob => {
+                        let url = window.URL.createObjectURL(blob);
+                        let a = document.createElement('a');
+                        a.href = url;
+                        a.download = "clone.db.gz";
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                    })
+                    .catch(err => {
+                        console.error("downloading database file", err);
+                        alert("Failed to download database file, check console for error");
+                    })
+                    .finally(() => {
+                        document.getElementById("download-button").style.display = "block";
+                        document.getElementById("loader-icon").style.display = "none";
+                    })
+            }
+        </script>
+    </head>
+    <body>
+        <div class="text-center">
+            <h3>Click button below to download GPS data</h3>
+            <p>This will clone the database, zip it and allow you to save it locally. This may take some time, depending on how big the database is.</p>
+            <button id="download-button" style="margin: 0 auto" onclick="downloadFiles()">Download GPS data</button>
+            <div id="loader-icon" class="loader" style="margin: 0 auto; display: none"></div>
+        </div>
+    </body>
+</html>
